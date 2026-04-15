@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base Resets ──────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #0a0a1a;
+  color: #e2e8f0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── Glassmorphism Utilities ─────────────────────── */
+@layer components {
+  .glass-panel {
+    @apply bg-vibe-panel/70 backdrop-blur-xl border border-vibe-border/50 rounded-2xl;
+  }
+
+  .glass-card {
+    @apply bg-vibe-card/50 backdrop-blur-md border border-vibe-border/30 rounded-xl;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-vibe-cyan to-cyan-400 text-vibe-dark font-semibold rounded-xl
+           hover:shadow-glow-cyan transition-all duration-300 hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply px-6 py-3 bg-gradient-to-r from-vibe-red to-red-400 text-white font-semibold rounded-xl
+           hover:shadow-glow-red transition-all duration-300 hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-vibe-card border border-vibe-border text-vibe-cyan font-semibold rounded-xl
+           hover:bg-vibe-border/30 transition-all duration-300;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-vibe-dark/60 border border-vibe-border/50 rounded-xl text-white
+           placeholder:text-gray-500 focus:outline-none focus:border-vibe-cyan/60 focus:shadow-glow-cyan
+           transition-all duration-300;
+  }
+
+  .section-title {
+    @apply text-lg font-bold bg-gradient-to-r from-vibe-cyan to-vibe-magenta bg-clip-text text-transparent;
+  }
+}
+
+/* ── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a5a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a7a;
+}
+
+/* ── Grid Cell Animations ────────────────────────── */
+@keyframes cellPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.cell-hot {
+  animation: cellPulse 1.5s ease-in-out infinite;
+}
+
+/* ── SOS Button Ripple ───────────────────────────── */
+.sos-ripple::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid rgba(239, 68, 68, 0.6);
+  animation: ripple 1.5s ease-out infinite;
+}
