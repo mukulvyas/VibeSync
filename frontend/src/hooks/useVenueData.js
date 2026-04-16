@@ -4,11 +4,12 @@ const WS_URL = 'ws://localhost:8000/ws/venue';
 
 /**
  * Custom hook for real-time venue data via WebSocket.
- * Falls back to polling if WebSocket fails.
+ * Now includes agent log messages.
  */
 export function useVenueData() {
   const [venueData, setVenueData] = useState(null);
   const [incentives, setIncentives] = useState([]);
+  const [agentLogs, setAgentLogs] = useState([]);
   const [connected, setConnected] = useState(false);
   const [tick, setTick] = useState(0);
   const wsRef = useRef(null);
@@ -33,6 +34,10 @@ export function useVenueData() {
 
         if (data.incentive_events?.length > 0) {
           setIncentives(prev => [...data.incentive_events, ...prev].slice(0, 10));
+        }
+
+        if (data.agent_logs) {
+          setAgentLogs(data.agent_logs);
         }
       } catch (e) {
         console.error('[VibeSync] Parse error:', e);
@@ -63,5 +68,5 @@ export function useVenueData() {
     setIncentives(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  return { venueData, incentives, connected, tick, dismissIncentive };
+  return { venueData, incentives, agentLogs, connected, tick, dismissIncentive };
 }

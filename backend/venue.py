@@ -116,3 +116,48 @@ class VenueSimulator:
 
     def get_all_seat_ids(self) -> list[str]:
         return sorted(self.seat_map.keys())
+
+    # ── Scenario Injection ─────────────────────────────
+    def apply_full_surge(self):
+        """Match Ends — all gates and aisles surge to max density."""
+        for r in range(self.ROWS):
+            for c in range(self.COLS):
+                cell = self.grid[r][c]
+                if cell["cell_type"] == "gate":
+                    cell["density"] = round(random.uniform(0.85, 1.0), 2)
+                    cell["temperature"] = round(random.uniform(36.0, 42.0), 1)
+                elif cell["cell_type"] == "aisle":
+                    cell["density"] = round(random.uniform(0.7, 0.95), 2)
+                    cell["temperature"] = round(random.uniform(33.0, 38.0), 1)
+                else:
+                    cell["density"] = round(random.uniform(0.5, 0.85), 2)
+                    cell["temperature"] = round(random.uniform(30.0, 36.0), 1)
+
+    def apply_medical_emergency(self, seat_id: str = "E4"):
+        """Medical emergency — spike density around a seat."""
+        coords = self.get_seat_coords(seat_id)
+        if not coords:
+            coords = (5, 4)
+        r0, c0 = coords
+        for dr in range(-2, 3):
+            for dc in range(-2, 3):
+                r, c = r0 + dr, c0 + dc
+                if 0 <= r < self.ROWS and 0 <= c < self.COLS:
+                    dist = abs(dr) + abs(dc)
+                    spike = max(0.0, 0.95 - dist * 0.15)
+                    self.grid[r][c]["density"] = round(max(self.grid[r][c]["density"], spike), 2)
+                    self.grid[r][c]["temperature"] = round(min(42.0, self.grid[r][c]["temperature"] + 4.0), 1)
+
+    def apply_gate_blockage(self, gate_col: int = 3):
+        """Gate blockage — specific gate column completely jammed."""
+        # Block the gate cells in that column
+        for r in [0, self.ROWS - 1]:
+            self.grid[r][gate_col]["density"] = 1.0
+            self.grid[r][gate_col]["temperature"] = 42.0
+        # Cascade congestion to nearby cells
+        for r in range(1, self.ROWS - 1):
+            for dc in range(-1, 2):
+                c = gate_col + dc
+                if 0 <= c < self.COLS:
+                    self.grid[r][c]["density"] = round(min(1.0, self.grid[r][c]["density"] + 0.4), 2)
+                    self.grid[r][c]["temperature"] = round(min(42.0, self.grid[r][c]["temperature"] + 3.0), 1)
