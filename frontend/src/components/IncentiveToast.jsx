@@ -54,7 +54,7 @@ function AutoDismiss({ onDismiss, seconds }) {
         const next = p - 100 / (seconds * 10);
         if (next <= 0) {
           clearInterval(interval);
-          onDismiss();
+          setTimeout(() => onDismiss(), 0); // defer to avoid setState-during-render
           return 0;
         }
         return next;

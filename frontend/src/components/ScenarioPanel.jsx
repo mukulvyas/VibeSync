@@ -1,37 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const API = 'http://localhost:8000';
+
+// Expose a global trigger for the match countdown full-surge call from App.jsx
+export function triggerFullSurgeGlobal() {
+  fetch(`${API}/scenario/full-surge`, { method: 'POST' }).catch(() => {});
+}
 
 const SCENARIOS = [
   {
     id: 'full-surge',
-    label: 'Match Ends',
-    subtitle: 'Full Surge',
-    icon: '🏟️',
-    description: 'All exits hit critical congestion',
+    label: 'Match End Surge',
+    subtitle: 'Exit Rush Event',
+    icon: '🌊',
+    description: 'All gates, exits surge to max density',
     endpoint: '/scenario/full-surge',
+    color: '#f5a623',
+    glow: '0 0 20px rgba(245,158,11,0.3)',
+  },
+  {
+    id: 'power-outage',
+    label: 'Power Outage',
+    subtitle: 'Blackout / Cascade Event',
+    icon: '⚡',
+    description: 'System-wide lighting failure',
+    endpoint: '/scenario/power-outage',
+    color: '#06b6d4',
+    glow: '0 0 20px rgba(6,182,212,0.3)',
+  },
+  {
+    id: 'medical-priority',
+    label: 'Medical Priority One',
+    subtitle: 'Priority Override',
+    icon: '🚨',
+    description: 'Critical emergency at sector E4',
+    endpoint: '/scenario/medical-priority-one',
     color: '#ef4444',
     glow: '0 0 20px rgba(239,68,68,0.3)',
   },
   {
-    id: 'medical',
-    label: 'Medical Emergency',
-    subtitle: 'SOS Demo',
-    icon: '🚑',
-    description: 'Emergency at seat E4',
-    endpoint: '/scenario/medical-emergency',
+    id: 'gate-blockage',
+    label: 'Gate Jam',
+    subtitle: 'Checkpoint Jam',
+    icon: '🚧',
+    description: 'Security chokepoint locked',
+    endpoint: '/scenario/gate-blockage',
     color: '#f59e0b',
     glow: '0 0 20px rgba(245,158,11,0.3)',
-  },
-  {
-    id: 'gate-blockage',
-    label: 'Gate 3 Blockage',
-    subtitle: 'Jam Event',
-    icon: '🚧',
-    description: 'Column 3 completely blocked',
-    endpoint: '/scenario/gate-blockage',
-    color: '#d946ef',
-    glow: '0 0 20px rgba(217,70,239,0.3)',
   },
 ];
 
@@ -55,12 +70,12 @@ export default function ScenarioPanel() {
   return (
     <div className="scenario-panel">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500">
-          ⚡ Scenario Injection
+        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#06b6d4]">
+          ▶ SYS.INJECT_SCENARIO
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {SCENARIOS.map(s => {
           const isActive = activeScenario === s.id;
           return (

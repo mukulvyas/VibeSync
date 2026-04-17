@@ -1,465 +1,227 @@
 import { useMemo, useEffect, useState } from 'react';
 
 /**
- * VibeMap v3 — Real Stadium Geometry
+ * VibeMap — High-End Tactical Blueprint
  * 
- * Layout: Central pitch surrounded by 4 curved stands (North, South, East, West)
- * with gate icons at corners and cells as small glowing circles.
+ * DESIGN SPECS:
+ * - Geometric trapezoidal stands (Blueprint style)
+ * - Dot-matrix seating pattern
+ * - Pulse clusters for density (Heat Particles)
+ * - Sweeping radar & scanning line
+ * - Interactive legend
  */
 
-// ── Stadium Position Mapping ──────────────────────
-// Maps each (row, col) in the 10×10 grid to a physical (x, y) stadium coordinate.
-// North Stand: rows 0-2 (top curve)
-// South Stand: rows 7-9 (bottom curve)
-// West Stand:  rows 3-6, cols 0-4 (left curve)
-// East Stand:  rows 3-6, cols 5-9 (right curve)
+const AISLE_LABELS = [
+  { text: 'SEC-104', x: 480, y: 285 },
+  { text: 'SEC-105', x: 650, y: 285 },
+  { text: 'VIP-B', x: 500, y: 760 },
+  { text: 'SEC-106', x: 650, y: 760 },
+];
 
-const SVG_W = 900, SVG_H = 620;
-const CX = SVG_W / 2, CY = SVG_H / 2;
-const PITCH_W = 230, PITCH_H = 130;
+export default function VibeMap({ venueData, path, sosAlerts = [], onCellClick, attendeeMode = true, agentLogs = [] }) {
+  const [zoomLevel, setZoomLevel] = useState(1);
 
-function getStadiumPos(r, c) {
-  // NORTH STAND: rows 0-2, 10 cells per row
-  if (r <= 2) {
-    const tier = 2 - r; // 0=close to pitch (row 2), 2=far (row 0/gates)
-    const tierY = CY - PITCH_H / 2 - 28 - tier * 36;
-    const t = c / 9;
-    const arc = Math.sin(t * Math.PI) * (10 + tier * 5);
-    const spread = 520 + tier * 30;
-    const x = CX - spread / 2 + t * spread;
-    const y = tierY - arc;
-    return { x, y, stand: 'north' };
-  }
+  // Map density to dot-matrix cluster intensity
+  const { standColors, attendeeDots } = useMemo(() => {
+    const s = { north: '#1e293b', south: '#1e293b', east: '#1e293b', west: '#1e293b' };
+    const dots = [];
+    if (!venueData) return { standColors: s, attendeeDots: [] };
 
-  // SOUTH STAND: rows 7-9
-  if (r >= 7) {
-    const tier = r - 7; // 0=close (row 7), 2=far (row 9/gates)
-    const tierY = CY + PITCH_H / 2 + 28 + tier * 36;
-    const t = c / 9;
-    const arc = Math.sin(t * Math.PI) * (10 + tier * 5);
-    const spread = 520 + tier * 30;
-    const x = CX - spread / 2 + t * spread;
-    const y = tierY + arc;
-    return { x, y, stand: 'south' };
-  }
+    venueData.forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        if (cell.cell_type !== 'seat') return;
+        
+        // Stand Logic
+        let stand = '';
+        if (ri <= 2) stand = 'north';
+        else if (ri >= 7) stand = 'south';
+        else if (ci <= 2) stand = 'west';
+        else if (ci >= 7) stand = 'east';
 
-  // rows 3-6 → side stands
-  const sideT = (r - 3) / 3; // 0..1 vertical fraction
+        if (stand) {
+          if (cell.density > 0.6) s[stand] = 'rgba(245, 158, 11, 0.4)'; 
+          if (cell.density > 0.85) s[stand] = 'rgba(239, 68, 68, 0.4)';
 
-  if (c <= 4) {
-    // WEST STAND
-    const tier = 4 - c; // col 0=far (tier 4), col 4=close (tier 0)
-    const tierX = CX - PITCH_W / 2 - 28 - tier * 32;
-    const arc = Math.sin(sideT * Math.PI) * (8 + tier * 4);
-    const spread = 230 + tier * 18;
-    const y = CY - spread / 2 + sideT * spread;
-    const x = tierX - arc;
-    return { x, y, stand: 'west' };
-  }
-
-  // EAST STAND
-  const tier = c - 5; // col 5=close (tier 0), col 9=far (tier 4)
-  const tierX = CX + PITCH_W / 2 + 28 + tier * 32;
-  const arc = Math.sin(sideT * Math.PI) * (8 + tier * 4);
-  const spread = 230 + tier * 18;
-  const y = CY - spread / 2 + sideT * spread;
-  const x = tierX + arc;
-  return { x, y, stand: 'east' };
-}
-
-
-// ── Color Helpers ─────────────────────────────────
-function densityColor(d) {
-  if (d <= 0.25) return '#22c55e';
-  if (d <= 0.45) return '#84cc16';
-  if (d <= 0.60) return '#eab308';
-  if (d <= 0.75) return '#f97316';
-  return '#ef4444';
-}
-
-function densityGlowRadius(d) {
-  if (d <= 0.3) return 4;
-  if (d <= 0.6) return 8;
-  return 14;
-}
-
-
-// ── Fan Dots ──────────────────────────────────────
-function generateFanDots(venueData, count = 30) {
-  if (!venueData) return [];
-  const dots = [];
-  for (let i = 0; i < count; i++) {
-    const r = Math.floor(Math.random() * 10);
-    const c = Math.floor(Math.random() * 10);
-    const cell = venueData[r]?.[c];
-    if (cell && cell.density > 0.25) {
-      const pos = getStadiumPos(r, c);
-      dots.push({
-        id: i,
-        cx: pos.cx,
-        cy: pos.cy,
-        x: pos.x + (Math.random() - 0.5) * 24,
-        y: pos.y + (Math.random() - 0.5) * 24,
-        size: 1.5 + Math.random() * 2,
-        delay: Math.random() * 4,
-        dur: 2.5 + Math.random() * 3,
-        opacity: 0.3 + cell.density * 0.5,
+          // Generate attendee dots for visuals
+          const count = Math.floor(cell.density * 12);
+          for (let i = 0; i < count; i++) {
+            dots.push({
+              id: `fan-${ri}-${ci}-${i}`,
+              cx: (ci * 100 + 50) + (Math.random() * 60 - 30),
+              cy: (ri * 100 + 50) + (Math.random() * 60 - 30),
+              r: 1.5 + Math.random() * 2,
+              opacity: 0.4 + cell.density * 0.5
+            });
+          }
+        }
       });
-    }
-  }
-  return dots;
-}
-
-
-// ── Stand Glow (average density per stand) ────────
-function computeStandGlows(venueData) {
-  if (!venueData) return {};
-  const stands = { north: [], south: [], west: [], east: [] };
-
-  for (let r = 0; r < 10; r++) {
-    for (let c = 0; c < 10; c++) {
-      const cell = venueData[r][c];
-      const { stand } = getStadiumPos(r, c);
-      if (stands[stand]) stands[stand].push(cell.density);
-    }
-  }
-
-  const result = {};
-  for (const [name, densities] of Object.entries(stands)) {
-    const avg = densities.reduce((a, b) => a + b, 0) / densities.length;
-    result[name] = {
-      avg,
-      color: densityColor(avg),
-      opacity: Math.max(0.03, avg * 0.2),
-    };
-  }
-  return result;
-}
-
-
-// ── Main Component ────────────────────────────────
-export default function VibeMap({ venueData, path, sosAlerts = [], onCellClick }) {
-  const [fanDots, setFanDots] = useState([]);
-
-  useEffect(() => {
-    if (venueData) setFanDots(generateFanDots(venueData, 30));
+    });
+    return { standColors: s, attendeeDots: dots };
   }, [venueData]);
 
-  const sosMap = useMemo(() => {
-    const m = new Set();
-    sosAlerts.forEach(a => m.add(`${a.x},${a.y}`));
-    return m;
-  }, [sosAlerts]);
-
-  const pathSet = useMemo(() => {
-    const s = new Set();
-    if (path) path.forEach(p => s.add(`${p.row},${p.col}`));
-    return s;
+  const pathPoints = useMemo(() => {
+    if (!path) return '';
+    return path.map(p => `${p.col * 100 + 50},${p.row * 100 + 50}`).join(' ');
   }, [path]);
 
-  const standGlows = useMemo(() => computeStandGlows(venueData), [venueData]);
-
-  // Build smooth Cool Path curve
-  const pathCurve = useMemo(() => {
-    if (!path || path.length < 2) return null;
-    const points = path.map(p => getStadiumPos(p.row, p.col));
-    // Build smooth SVG path using cardinal spline
-    let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const cpx = (prev.x + curr.x) / 2;
-      const cpy = (prev.y + curr.y) / 2;
-      d += ` Q ${prev.x + (curr.x - prev.x) * 0.3} ${prev.y + (curr.y - prev.y) * 0.1}, ${cpx} ${cpy}`;
-    }
-    const last = points[points.length - 1];
-    d += ` L ${last.x} ${last.y}`;
-    return { d, points };
-  }, [path]);
-
-  // ── Loading state ──
-  if (!venueData) {
-    return (
-      <div className="arena-panel flex items-center justify-center" style={{ minHeight: 420 }}>
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
-          <p className="text-gray-500 text-sm tracking-widest uppercase">Connecting to Arena...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Gate corner positions ──
-  const gates = [
-    { x: 62, y: 42, label: 'Gate 1' },
-    { x: SVG_W - 62, y: 42, label: 'Gate 2' },
-    { x: 62, y: SVG_H - 42, label: 'Gate 3' },
-    { x: SVG_W - 62, y: SVG_H - 42, label: 'Gate 4' },
-  ];
+  // Coordinates for YOU marker (Mock for attendee mode)
+  const userPos = { x: 550, y: 730 };
 
   return (
-    <div className="arena-panel p-2 sm:p-3 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2 px-2">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <h2 className="text-[11px] font-bold tracking-[0.2em] uppercase text-cyan-300/80">
-            Live Arena
-          </h2>
-        </div>
-        <div className="flex items-center gap-4 text-[9px] tracking-wider uppercase text-gray-500">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 6px #22c55e55' }} /> Clear
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: '#eab308', boxShadow: '0 0 6px #eab30855' }} /> Busy
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: '#ef4444', boxShadow: '0 0 6px #ef444455' }} /> Critical
-          </span>
-        </div>
-      </div>
+    <div className="tactical-panel relative map-blueprint-bg min-h-[600px] flex items-center justify-center group overflow-hidden">
+      {/* Scanner Effect */}
+      <div className="scanner-effect" />
 
-      <div className="flex justify-center">
-        <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full" style={{ maxWidth: '820px', minWidth: '360px' }}>
-          <defs>
-            {/* Oval clip for entire stadium */}
-            <clipPath id="stadium-clip">
-              <ellipse cx={CX} cy={CY} rx={CX - 20} ry={CY - 16} />
-            </clipPath>
+      {/* SVG Blueprint */}
+      <svg viewBox="0 0 1000 1000" className="w-full h-full max-w-[800px] drop-shadow-[0_0_30px_rgba(0,210,255,0.1)]">
+        <defs>
+          {/* Dot Matrix Pattern */}
+          <pattern id="dotMatrix" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="rgba(0, 210, 255, 0.15)" />
+          </pattern>
+          
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
 
-            {/* Cyan neon glow */}
-            <filter id="arena-glow-v3" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="4" result="b" />
-              <feFlood floodColor="#06b6d4" floodOpacity="0.5" />
-              <feComposite in2="b" operator="in" />
-              <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
+        {/* Stadium Boundary (Geometric) */}
+        <path 
+           d="M 150,150 L 850,150 L 950,500 L 850,850 L 150,850 L 50,500 Z" 
+           fill="none" 
+           stroke="rgba(0, 210, 255, 0.1)" 
+           strokeWidth="2"
+           strokeDasharray="10 5"
+        />
 
-            {/* Path neon glow */}
-            <filter id="path-glow-v3" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="4" />
-              <feFlood floodColor="#06b6d4" floodOpacity="0.7" />
-              <feComposite operator="in" in2="SourceGraphic" />
-              <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
+        {/* Background Grid Dots (Global) */}
+        <rect width="1000" height="1000" fill="url(#dotMatrix)" pointerEvents="none" />
 
-            {/* Stand glow filters */}
-            <filter id="stand-glow-red" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="18" />
-              <feFlood floodColor="#ef4444" floodOpacity="0.4" />
-              <feComposite operator="in" in2="SourceGraphic" />
-            </filter>
-            <filter id="stand-glow-amber" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="14" />
-              <feFlood floodColor="#f59e0b" floodOpacity="0.3" />
-              <feComposite operator="in" in2="SourceGraphic" />
-            </filter>
+        {/* ── STANDS ── */}
+        {/* North Stand */}
+        <g className="cursor-pointer group/stand" onClick={() => onCellClick?.('NORTH')}>
+          <path d="M 300,250 L 700,250 L 750,150 L 250,150 Z" 
+                className="map-geometry-path"
+                style={{ fill: standColors.north }} />
+          <text x="500" y="130" textAnchor="middle" className="tech-header fill-dim" fontSize="12">NORTH_TERRACE [SEC-101]</text>
+        </g>
 
-            {/* Pitch grass gradient */}
-            <linearGradient id="pitch-grass" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#14532d" />
-              <stop offset="50%" stopColor="#166534" />
-              <stop offset="100%" stopColor="#14532d" />
-            </linearGradient>
-          </defs>
+        {/* South Stand */}
+        <g className="cursor-pointer group/stand" onClick={() => onCellClick?.('SOUTH')}>
+          <path d="M 300,750 L 700,750 L 750,850 L 250,850 Z" 
+                className="map-geometry-path"
+                style={{ fill: standColors.south }} />
+          <text x="500" y="880" textAnchor="middle" className="tech-header fill-dim" fontSize="12">SOUTH_STAND [SEC-204]</text>
+        </g>
 
-          {/* Deep space background */}
-          <rect width={SVG_W} height={SVG_H} rx="24" fill="#0b0e14" />
+        {/* West Stand (Skewed Side) */}
+        <g className="cursor-pointer group/stand" onClick={() => onCellClick?.('WEST')}>
+          <path d="M 250,300 L 250,700 L 100,750 L 100,250 Z" 
+                className="map-geometry-path"
+                style={{ fill: standColors.west }} />
+          <text x="80" y="500" textAnchor="middle" className="tech-header fill-dim" fontSize="12" transform="rotate(-90 80,500)">AXIS_W [LOGISTICS]</text>
+        </g>
 
-          {/* Oval arena border with cyan glow */}
-          <ellipse cx={CX} cy={CY} rx={CX - 20} ry={CY - 16}
-            fill="none" stroke="#06b6d4" strokeWidth="1.5" opacity="0.5"
-            filter="url(#arena-glow-v3)" />
-          <ellipse cx={CX} cy={CY} rx={CX - 26} ry={CY - 22}
-            fill="none" stroke="#06b6d4" strokeWidth="0.5" opacity="0.15"
-            strokeDasharray="6 4" />
+        {/* East Stand */}
+        <g className="cursor-pointer group/stand" onClick={() => onCellClick?.('EAST')}>
+          <path d="M 750,300 L 750,700 L 900,750 L 900,250 Z" 
+                className="map-geometry-path"
+                style={{ fill: standColors.east }} />
+          <text x="920" y="500" textAnchor="middle" className="tech-header fill-dim" fontSize="12" transform="rotate(90 920,500)">VIP-LEVEL / MEDIA</text>
+        </g>
 
-          {/* Clipped stadium content */}
-          <g clipPath="url(#stadium-clip)">
+        {/* ── PITCH ── */}
+        <g pointerEvents="none">
+          <rect x="350" y="350" width="300" height="300" fill="none" stroke="rgba(0, 210, 255, 0.2)" strokeWidth="1" />
+          <circle cx="500" cy="500" r="40" fill="none" stroke="rgba(0, 210, 255, 0.15)" strokeWidth="1" strokeDasharray="5 5" />
+          <line x1="350" y1="500" x2="650" y2="500" stroke="rgba(0, 210, 255, 0.15)" strokeWidth="1" strokeDasharray="5 5" />
+        </g>
 
-            {/* ── Stand glow backgrounds ──────── */}
-            {standGlows.north && standGlows.north.avg > 0.5 && (
-              <ellipse cx={CX} cy={CY - PITCH_H / 2 - 60} rx={280} ry={80}
-                fill={standGlows.north.color} opacity={standGlows.north.opacity}
-                filter={standGlows.north.avg > 0.7 ? 'url(#stand-glow-red)' : 'url(#stand-glow-amber)'} />
-            )}
-            {standGlows.south && standGlows.south.avg > 0.5 && (
-              <ellipse cx={CX} cy={CY + PITCH_H / 2 + 60} rx={280} ry={80}
-                fill={standGlows.south.color} opacity={standGlows.south.opacity}
-                filter={standGlows.south.avg > 0.7 ? 'url(#stand-glow-red)' : 'url(#stand-glow-amber)'} />
-            )}
-            {standGlows.west && standGlows.west.avg > 0.5 && (
-              <ellipse cx={CX - PITCH_W / 2 - 80} cy={CY} rx={80} ry={140}
-                fill={standGlows.west.color} opacity={standGlows.west.opacity}
-                filter={standGlows.west.avg > 0.7 ? 'url(#stand-glow-red)' : 'url(#stand-glow-amber)'} />
-            )}
-            {standGlows.east && standGlows.east.avg > 0.5 && (
-              <ellipse cx={CX + PITCH_W / 2 + 80} cy={CY} rx={80} ry={140}
-                fill={standGlows.east.color} opacity={standGlows.east.opacity}
-                filter={standGlows.east.avg > 0.7 ? 'url(#stand-glow-red)' : 'url(#stand-glow-amber)'} />
-            )}
-
-            {/* ── Central Pitch ───────────────── */}
-            <rect x={CX - PITCH_W / 2} y={CY - PITCH_H / 2}
-              width={PITCH_W} height={PITCH_H}
-              rx="6" fill="url(#pitch-grass)" opacity="0.8" />
-            {/* Pitch outline */}
-            <rect x={CX - PITCH_W / 2 + 4} y={CY - PITCH_H / 2 + 4}
-              width={PITCH_W - 8} height={PITCH_H - 8}
-              rx="3" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-            {/* Center circle */}
-            <circle cx={CX} cy={CY} r={24} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-            {/* Center dot */}
-            <circle cx={CX} cy={CY} r={2} fill="rgba(255,255,255,0.2)" />
-            {/* Center line */}
-            <line x1={CX} y1={CY - PITCH_H / 2 + 4} x2={CX} y2={CY + PITCH_H / 2 - 4}
-              stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-            {/* Penalty areas */}
-            <rect x={CX - PITCH_W / 2 + 4} y={CY - 30} width={36} height={60}
-              rx="2" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.8" />
-            <rect x={CX + PITCH_W / 2 - 40} y={CY - 30} width={36} height={60}
-              rx="2" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.8" />
-            {/* Pitch label */}
-            <text x={CX} y={CY + 2} textAnchor="middle" dominantBaseline="middle"
-              fill="rgba(255,255,255,0.08)" fontSize="11" fontFamily="Inter"
-              fontWeight="800" letterSpacing="4">PITCH</text>
-
-            {/* ── Seat Cells (circles) ────────── */}
-            {venueData.map((row, ri) =>
-              row.map((cell, ci) => {
-                const pos = getStadiumPos(ri, ci);
-                const key = `${ri},${ci}`;
-                const isPath = pathSet.has(key);
-                const isSOS = sosMap.has(key);
-                const isHot = cell.density > 0.75;
-                const isGate = cell.cell_type === 'gate';
-                const color = densityColor(cell.density);
-                const glowR = densityGlowRadius(cell.density);
-                const seatR = isGate ? 9 : 7;
-
-                return (
-                  <g key={key} onClick={() => onCellClick?.(cell)} style={{ cursor: 'pointer' }}>
-                    {/* Atmospheric glow under each seat */}
-                    <circle cx={pos.x} cy={pos.y} r={glowR + seatR}
-                      fill={color} opacity={cell.density * 0.18}
-                      style={{ filter: `blur(${glowR}px)` }} />
-
-                    {/* Seat circle */}
-                    <circle cx={pos.x} cy={pos.y} r={seatR}
-                      fill={`${color}40`}
-                      stroke={isPath ? '#06b6d4' : isSOS ? '#ef4444' : `${color}80`}
-                      strokeWidth={isPath ? 2 : isSOS ? 2 : 0.8}
-                    >
-                      {isHot && (
-                        <animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite" />
-                      )}
-                    </circle>
-
-                    {/* Inner dot (density intensity) */}
-                    <circle cx={pos.x} cy={pos.y}
-                      r={2 + cell.density * 3}
-                      fill={color}
-                      opacity={0.6 + cell.density * 0.3}
-                    />
-
-                    {/* Path ring */}
-                    {isPath && (
-                      <circle cx={pos.x} cy={pos.y} r={seatR + 3}
-                        fill="none" stroke="#06b6d4" strokeWidth="1.5" opacity="0.6"
-                        strokeDasharray="3 2" />
-                    )}
-
-                    {/* SOS pulse */}
-                    {isSOS && (
-                      <>
-                        <circle cx={pos.x} cy={pos.y} r={seatR + 2}
-                          fill="none" stroke="#ef4444" strokeWidth="1.5">
-                          <animate attributeName="r" from={seatR} to={seatR + 18} dur="1.5s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" from="0.8" to="0" dur="1.5s" repeatCount="indefinite" />
-                        </circle>
-                        <text x={pos.x} y={pos.y - seatR - 6} textAnchor="middle"
-                          fill="#ef4444" fontSize="8" fontWeight="800" fontFamily="Inter">SOS</text>
-                      </>
-                    )}
-
-                    {/* Seat label (only for seats, not gates/aisles) */}
-                    {cell.seat_id && (
-                      <text x={pos.x} y={pos.y + 0.5} textAnchor="middle" dominantBaseline="middle"
-                        fill={cell.density > 0.6 ? '#fff' : '#94a3b8'}
-                        fontSize="5.5" fontFamily="Inter" fontWeight="600" letterSpacing="0.3">
-                        {cell.seat_id}
-                      </text>
-                    )}
-                  </g>
-                );
-              })
-            )}
-
-            {/* ── Floating Fan Dots ───────────── */}
-            {fanDots.map(dot => (
-              <circle key={`fan-${dot.id}`} cx={dot.x} cy={dot.y}
-                r={dot.size} fill="#fff" opacity={dot.opacity}
-                className="fan-dot"
-                style={{ animationDelay: `${dot.delay}s`, animationDuration: `${dot.dur}s` }} />
-            ))}
-
-          </g>
-          {/* End clipped content */}
-
-          {/* ── Gate Icons (outside clip, at corners) ── */}
-          {gates.map((g, i) => (
-            <g key={`gate-${i}`}>
-              <rect x={g.x - 20} y={g.y - 10} width={40} height={20}
-                rx="6" fill="rgba(6,182,212,0.08)"
-                stroke="rgba(6,182,212,0.3)" strokeWidth="1" />
-              <text x={g.x} y={g.y + 1} textAnchor="middle" dominantBaseline="middle"
-                fill="#06b6d4" fontSize="7" fontFamily="Inter" fontWeight="700"
-                opacity="0.7" letterSpacing="0.5">{g.label.toUpperCase()}</text>
-            </g>
+        {/* ── ATTENDEES (FAN DOTS) ── */}
+        <g className="attendees" pointerEvents="none">
+          {attendeeDots.map(dot => (
+            <circle 
+              key={dot.id} 
+              cx={dot.cx} 
+              cy={dot.cy} 
+              r={dot.r} 
+              fill={attendeeMode ? "var(--cyan-tactical)" : "var(--amber-tactical)"} 
+              opacity={dot.opacity} 
+            />
           ))}
+        </g>
 
-          {/* ── Stand Labels ──────────────────── */}
-          <text x={CX} y={36} textAnchor="middle" fill="rgba(255,255,255,0.12)"
-            fontSize="9" fontFamily="Inter" fontWeight="700" letterSpacing="4">NORTH STAND</text>
-          <text x={CX} y={SVG_H - 26} textAnchor="middle" fill="rgba(255,255,255,0.12)"
-            fontSize="9" fontFamily="Inter" fontWeight="700" letterSpacing="4">SOUTH STAND</text>
-          <text x={46} y={CY} textAnchor="middle" fill="rgba(255,255,255,0.1)"
-            fontSize="8" fontFamily="Inter" fontWeight="700" letterSpacing="3"
-            transform={`rotate(-90, 46, ${CY})`}>WEST</text>
-          <text x={SVG_W - 46} y={CY} textAnchor="middle" fill="rgba(255,255,255,0.1)"
-            fontSize="8" fontFamily="Inter" fontWeight="700" letterSpacing="3"
-            transform={`rotate(90, ${SVG_W - 46}, ${CY})`}>EAST</text>
+        {/* Aisle Labels */}
+        {AISLE_LABELS.map((label, idx) => (
+          <text key={idx} x={label.x} y={label.y} className="text-[10px] fill-[#5a7a8a] font-mono tracking-widest">{label.text}</text>
+        ))}
 
-          {/* ── Cool Path (curved neon line) ──── */}
-          {pathCurve && (
-            <>
-              <path d={pathCurve.d} fill="none" stroke="#06b6d4" strokeWidth="3"
-                strokeLinecap="round" strokeDasharray="10 6"
-                filter="url(#path-glow-v3)" opacity="0.9">
-                <animate attributeName="stroke-dashoffset" from="32" to="0" dur="1.2s" repeatCount="indefinite" />
-              </path>
+        {/* ── Pathfinding Line ── */}
+        {pathPoints && (
+          <polyline 
+            points={pathPoints} 
+            fill="none" 
+            stroke="var(--cyan-tactical)" 
+            strokeWidth="3" 
+            strokeDasharray="8 4" 
+            className="data-stream-path animate-tech-pulse" 
+            filter="url(#glow)"
+          />
+        )}
 
-              {/* Start marker */}
-              <circle cx={pathCurve.points[0].x} cy={pathCurve.points[0].y}
-                r={8} fill="#06b6d4" stroke="#0b0e14" strokeWidth="2"
-                filter="url(#path-glow-v3)" />
-              <text x={pathCurve.points[0].x} y={pathCurve.points[0].y + 0.5}
-                textAnchor="middle" dominantBaseline="middle"
-                fill="#0b0e14" fontSize="6" fontWeight="800">▶</text>
+        {/* ── SOS Alerts ── */}
+        {sosAlerts.filter(a => !a.resolved).map(alert => (
+          <g key={alert.id} transform={`translate(${alert.y * 100 + 50}, ${alert.x * 100 + 50})`}>
+            <circle r="15" fill="var(--red-tactical)" className="animate-ping opacity-20" />
+            <circle r="6" fill="var(--red-tactical)" filter="url(#glow)" />
+          </g>
+        ))}
 
-              {/* End marker */}
-              <circle cx={pathCurve.points.at(-1).x} cy={pathCurve.points.at(-1).y}
-                r={10} fill="#d946ef" stroke="#0b0e14" strokeWidth="2">
-                <animate attributeName="r" values="10;12;10" dur="2s" repeatCount="indefinite" />
-              </circle>
-              <text x={pathCurve.points.at(-1).x} y={pathCurve.points.at(-1).y + 1}
-                textAnchor="middle" dominantBaseline="middle"
-                fill="#fff" fontSize="7" fontWeight="bold">📍</text>
-            </>
-          )}
-        </svg>
+        {/* ── User Marker (Attendee Mode) ── */}
+        {attendeeMode && (
+          <g transform={`translate(${userPos.x}, ${userPos.y})`}>
+            <circle r="10" fill="var(--cyan-tactical)" className="animate-ping opacity-30" />
+            <rect x="-10" y="-10" width="20" height="20" fill="var(--cyan-tactical)" className="rotate-45" filter="url(#glow)" />
+            <g transform="translate(0, 25)">
+               <rect x="-25" y="-10" width="50" height="16" fill="var(--cyan-tactical)" />
+               <text y="2" textAnchor="middle" fill="var(--bg-space)" className="text-[10px] font-bold">YOU</text>
+            </g>
+          </g>
+        )}
+
+        {/* Radar Sweep */}
+        <g transform="translate(500, 500)">
+          <line x1="0" y1="0" x2="0" y2="-450" stroke="var(--cyan-tactical)" strokeWidth="1" opacity="0.3" className="origin-center animate-[spin_6s_linear_infinite]" />
+        </g>
+      </svg>
+
+      {/* Map Legend (Floating) */}
+      <div className="absolute bottom-6 right-6 p-4 bg-bg-panel/80 backdrop-blur-md border border-border-dim text-[10px] font-mono space-y-2">
+         <LegendItem color="var(--cyan-tactical)" label="SEAT_VACANCY" />
+         <LegendItem color="var(--amber-tactical)" label="FLOW_DENSITY" />
+         <LegendItem color="var(--cyan-tactical)" label="OPT_EVAC_PATH" dashed />
       </div>
+
+      {/* Zoom Controls */}
+      <div className="absolute right-6 bottom-32 flex flex-col gap-2">
+         <button className="w-8 h-8 border border-border-dim bg-bg-panel/80 text-cyan-tactical hover:bg-cyan-tactical/20 transition-all">+</button>
+         <button className="w-8 h-8 border border-border-dim bg-bg-panel/80 text-cyan-tactical hover:bg-cyan-tactical/20 transition-all">-</button>
+         <button className="w-8 h-8 border border-border-dim bg-bg-panel/80 text-cyan-tactical hover:bg-cyan-tactical/20 transition-all">⬡</button>
+      </div>
+
+      <style>{`
+        .fill-dim { fill: var(--text-dim); }
+      `}</style>
+    </div>
+  );
+}
+
+function LegendItem({ color, label, dashed }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`w-3 h-3 ${dashed ? 'border-t-2 border-dashed' : ''}`} style={{ backgroundColor: dashed ? 'transparent' : color, borderTopColor: color }} />
+      <span className="text-white/70 tracking-tighter uppercase">{label}</span>
     </div>
   );
 }

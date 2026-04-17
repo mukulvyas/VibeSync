@@ -1,10 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Base — Deep Space ───────────────────────────── */
+/* ── Design System Tokens ────────────────────────── */
+:root {
+  --bg-space: #020617;
+  --bg-panel: #080d14;
+  --bg-card: #0d1520;
+  --cyan-tactical: #00d2ff;
+  --amber-tactical: #f5a623;
+  --red-tactical: #ff4d4d;
+  --magenta-tactical: #d946ef;
+  --text-primary: #e2e8f0;
+  --text-dim: #5a7a8a;
+  --border-dim: rgba(0, 210, 255, 0.1);
+  --border-active: rgba(0, 210, 255, 0.3);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -12,9 +26,9 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0b0e14;
-  color: #e2e8f0;
+  font-family: 'JetBrains Mono', 'Inter', monospace;
+  background-color: var(--bg-space);
+  color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -23,211 +37,125 @@ body {
   min-height: 100vh;
 }
 
-/* ── Glassmorphism Panels ────────────────────────── */
+/* ── Tactical Layout Components ────────────────── */
 @layer components {
-  .glass-panel {
-    @apply backdrop-blur-xl rounded-2xl;
-    background: rgba(14, 17, 28, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  /* Sidebar Container */
+  .tactical-sidebar {
+    @apply h-full flex flex-col;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-dim);
   }
 
-  .glass-card {
-    @apply backdrop-blur-md rounded-xl;
-    background: rgba(16, 20, 35, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+  /* Main Dashboard Panels */
+  .tactical-panel {
+    @apply rounded-none p-4;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
   }
 
-  .arena-panel {
-    @apply rounded-2xl;
-    background: rgba(8, 10, 18, 0.9);
-    border: 1px solid rgba(6, 182, 212, 0.12);
-    box-shadow: 0 0 40px rgba(6, 182, 212, 0.04), 0 8px 32px rgba(0, 0, 0, 0.5);
+  /* High-fidelity Sidebar Buttons (Left Rail) */
+  .sidebar-nav-item {
+    @apply flex flex-col items-center justify-center py-6 px-2 transition-all duration-300 cursor-pointer border-l-2 border-transparent;
+    color: var(--text-dim);
+  }
+  .sidebar-nav-item:hover {
+    color: var(--cyan-tactical);
+    background: rgba(0, 210, 255, 0.03);
+  }
+  .sidebar-nav-item.active {
+    color: var(--cyan-tactical);
+    background: rgba(0, 210, 255, 0.05);
+    border-left-color: var(--cyan-tactical);
   }
 
-  .neural-link-panel {
-    @apply rounded-2xl;
-    background: rgba(8, 10, 18, 0.95);
-    border: 1px solid rgba(6, 182, 212, 0.08);
+  /* Status Badges */
+  .status-badge {
+    @apply px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+    border: 1px solid currentColor;
+  }
+
+  /* Technical Headers */
+  .tech-header {
+    @apply text-[11px] font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2;
+    color: var(--text-dim);
     font-family: 'JetBrains Mono', monospace;
   }
-
-  .neural-glass-panel {
-    @apply rounded-2xl;
-    background: rgba(8, 12, 22, 0.45);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(6, 182, 212, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.02);
-    font-family: 'JetBrains Mono', monospace;
+  .tech-header::before {
+    content: '';
+    @apply w-1.5 h-1.5 rotate-45;
+    background: currentColor;
   }
 
-  .scenario-panel {
-    @apply rounded-2xl p-4;
-    background: rgba(14, 17, 28, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
+  /* Large Metric Cards */
+  .metric-card {
+    @apply p-5 relative overflow-hidden;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+  }
+  .metric-card::after {
+    content: '';
+    @apply absolute top-0 right-0 w-8 h-8 pointer-events-none;
+    background: linear-gradient(135deg, transparent 50%, rgba(0, 210, 255, 0.05) 50%);
   }
 
-  .scenario-btn {
-    @apply flex flex-col items-center justify-center text-center py-4 px-3 rounded-xl 
-           transition-all duration-300 cursor-pointer;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+  .btn-tactical {
+    @apply px-4 py-2 font-bold uppercase text-[10px] tracking-widest transition-all duration-300;
+    font-family: 'Rajdhani', sans-serif;
+    background: rgba(0, 210, 255, 0.05);
+    border: 1px solid var(--cyan-tactical);
+    color: var(--cyan-tactical);
   }
-  .scenario-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.12);
-    transform: translateY(-2px);
-  }
-  .scenario-btn:active {
-    transform: translateY(0);
-  }
-
-  .btn-primary {
-    @apply px-6 py-3 font-semibold rounded-xl transition-all duration-300;
-    background: linear-gradient(135deg, #06b6d4, #0ea5e9);
-    color: #0b0e14;
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
-  }
-  .btn-primary:hover {
-    box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
-    transform: scale(1.02);
-  }
-  .btn-primary:active {
-    transform: scale(0.98);
-  }
-
-  .btn-danger {
-    @apply px-6 py-3 font-semibold rounded-xl transition-all duration-300;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: #fff;
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
-  }
-  .btn-danger:hover {
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
-    transform: scale(1.02);
-  }
-
-  .btn-secondary {
-    @apply px-6 py-3 font-semibold rounded-xl transition-all duration-300;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(6, 182, 212, 0.3);
-    color: #06b6d4;
-  }
-  .btn-secondary:hover {
-    background: rgba(6, 182, 212, 0.08);
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 rounded-xl text-white transition-all duration-300;
-    background: rgba(6, 10, 20, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  .input-field::placeholder {
-    color: rgba(255, 255, 255, 0.2);
-  }
-  .input-field:focus {
-    outline: none;
-    border-color: rgba(6, 182, 212, 0.4);
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
-  }
-
-  .section-title {
-    @apply text-lg font-bold;
-    background: linear-gradient(135deg, #06b6d4, #d946ef);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .btn-tactical:hover {
+    background: var(--cyan-tactical);
+    color: var(--bg-space);
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
   }
 }
 
-/* ── Scrollbar ───────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(6, 182, 212, 0.2);
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 182, 212, 0.4);
+/* ── Blueprint Map Styles ────────────────────────── */
+.map-blueprint-bg {
+  background-color: var(--bg-space);
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(0, 210, 255, 0.05) 1px, transparent 0);
+  background-size: 40px 40px;
 }
 
-/* ── Fan Dot Floating Animation ──────────────────── */
-@keyframes fanFloat {
-  0%, 100% {
-    transform: translate(0, 0);
-    opacity: 0.3;
-  }
-  25% {
-    transform: translate(3px, -4px);
-    opacity: 0.7;
-  }
-  50% {
-    transform: translate(-2px, 2px);
-    opacity: 0.5;
-  }
-  75% {
-    transform: translate(4px, 3px);
-    opacity: 0.8;
-  }
+.map-geometry-path {
+  stroke: var(--cyan-tactical);
+  stroke-width: 1.5;
+  fill: rgba(0, 210, 255, 0.02);
+  filter: drop-shadow(0 0 2px rgba(0, 210, 255, 0.2));
 }
 
-.fan-dot {
-  animation: fanFloat 3s ease-in-out infinite;
-  pointer-events: none;
+/* ── Animations ──────────────────────────────────── */
+@keyframes techPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.animate-tech-pulse {
+  animation: techPulse 2s infinite;
 }
 
-/* ── Agent Log Slide-in ──────────────────────────── */
-@keyframes logSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+@keyframes scanLine {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(100%); }
 }
-
-/* ── SOS Button Ripple ───────────────────────────── */
-.sos-ripple {
-  position: relative;
+.scanner-effect {
+  @apply absolute inset-0 pointer-events-none overflow-hidden;
 }
-.sos-ripple::before {
+.scanner-effect::after {
   content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  border: 2px solid rgba(239, 68, 68, 0.5);
-  animation: sosRipple 1.5s ease-out infinite;
+  @apply absolute inset-x-0 h-24 opacity-20;
+  background: linear-gradient(to bottom, transparent, var(--cyan-tactical), transparent);
+  animation: scanLine 8s linear infinite;
 }
 
-@keyframes sosRipple {
-  0% { transform: scale(0.95); opacity: 1; }
-  100% { transform: scale(1.15); opacity: 0; }
-}
+/* ── Custom Utilities ────────────────────────────── */
+.font-rajdhani { font-family: 'Rajdhani', sans-serif; }
+.tracking-ultra { letter-spacing: 0.3em; }
 
-/* ── Neon Text Glow ──────────────────────────────── */
-.text-glow-cyan {
-  text-shadow: 0 0 10px rgba(6, 182, 212, 0.4), 0 0 40px rgba(6, 182, 212, 0.1);
-}
-
-/* ── Ambient Background Gradient ─────────────────── */
-.ambient-bg {
-  background: 
-    radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(217, 70, 239, 0.02) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, rgba(239, 68, 68, 0.02) 0%, transparent 40%),
-    #0b0e14;
-}
-
-/* ── Pulse animations ────────────────────────────── */
-@keyframes emergencyPulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(239,68,68,0.3); }
-  50% { opacity: 0.7; box-shadow: 0 0 25px rgba(239,68,68,0.6); }
-}
+/* Scrollbar Overrides */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--bg-space); }
+::-webkit-scrollbar-thumb { background: var(--border-active); }

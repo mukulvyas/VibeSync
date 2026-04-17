@@ -27,15 +27,17 @@ flow_agent = FlowAgent(venue)
 sync_agent = SyncAgent(venue)
 guardian_agent = GuardianAgent(venue)
 line_buddy = LineBuddy()
+guardian_agent.set_flow_agent(flow_agent)
 
 # Connected WebSocket clients
 ws_clients: set[WebSocket] = set()
 
+from typing import Any
 # Latest incentive events (cleared each tick)
-latest_incentives = []
+latest_incentives: list[Any] = []
 
 # Agent log messages
-agent_logs: list[dict] = []
+agent_logs: list[dict[str, str]] = []
 MAX_LOGS = 50
 
 
@@ -66,14 +68,14 @@ def generate_agent_thoughts():
 
     if congested:
         worst = max(congested, key=lambda x: x[1])
-        add_agent_log("FlowAgent",
-            f"Detected {int(worst[1]*100)}% congestion in {worst[0]}. Recalculating optimal pathing corridors...",
+        add_agent_log("FLOW_AGENT",
+            f">> BOTTLENECK detected at {worst[0].upper()}. Executing Dynamic Path Divergence.",
             "warning" if worst[1] > 0.85 else "info")
 
     if hot_zones:
         worst_heat = max(hot_zones, key=lambda x: x[1])
-        add_agent_log("FlowAgent",
-            f"Thermal anomaly at {worst_heat[0]}: {worst_heat[1]}°C. Routing fans through cooler corridors.",
+        add_agent_log("FLOW_AGENT",
+            f">> THERMAL ANOMALY at {worst_heat[0].upper()}: {worst_heat[1]}°C. Routing via alternative vector.",
             "warning")
 
     # SyncAgent analysis
@@ -86,29 +88,30 @@ def generate_agent_thoughts():
         gate = random.choice(gate_congestion)
         gate_name = f"Gate ({gate['row']},{gate['col']})"
         messages = [
-            f"Triggering merch vouchers for {gate_name} to stagger exits.",
-            f"Deploying trivia challenge at {gate_name}. Expected delay: 3-5 min.",
-            f"Incentive event dispatched near {gate_name}. Monitoring crowd response...",
-            f"Exit congestion at {gate_name}: {int(gate['density']*100)}%. Activating delay incentives.",
+            f">> Congestion at {gate_name} detected. Rerouting traffic to alternate corridors.",
+            f">> VOUCHER_ID_{random.randint(100, 999)} deployed to {gate_name}. Staggering exit by 480 seconds.",
+            f">> DEPLOYING Trivia Protocol at {gate_name}. Expect 300s variance.",
+            f">> INCENTIVE EVENT dispatched to {gate_name}. Monitoring footprint.",
+            f">> CONGESTION_CRITICAL: {gate_name} at {int(gate['density']*100)}%. Delay incentives ACTIVE.",
         ]
-        add_agent_log("SyncAgent", random.choice(messages), "info")
+        add_agent_log("SYNC_AGENT", random.choice(messages), "info")
     else:
         if random.random() < 0.3:
-            add_agent_log("SyncAgent", "All gates nominal. Pre-staging incentives for post-event surge.", "info")
+            add_agent_log("SYNC_AGENT", ">> SECTOR_GATES nominal. Pre-staging delay incentives.", "info")
 
     # Guardian analysis
     active_alerts = guardian_agent.get_active_alerts()
     if active_alerts:
         alert = active_alerts[-1]
         messages = [
-            f"SOS verified at [{alert.x}, {alert.y}]. Coordinating medic intercept.",
-            f"Staff dispatched to seat {alert.seat_id}. ETA: 90 seconds. Monitoring zone clearance.",
-            f"Emergency response active at ({alert.x},{alert.y}). Clearing adjacent corridors.",
+            f">> ALERT VERIFIED [{alert.x}, {alert.y}]. Coordinating physical intercept.",
+            f">> RESPONDER_ID_74 dispatched to {alert.seat_id}. T-minus 90 seconds.",
+            f">> EMERGENCY ZONE ACTIVE ({alert.x},{alert.y}). Initiating corridor lockdown.",
         ]
-        add_agent_log("Guardian", random.choice(messages), "critical")
+        add_agent_log("GUARDIAN", random.choice(messages), "critical")
     else:
         if random.random() < 0.2:
-            add_agent_log("Guardian", "All sectors clear. Passive biometric monitoring active.", "info")
+            add_agent_log("GUARDIAN", ">> SECTORS CLEAR. Passive biometric scanning engaged.", "info")
 
 
 def _zone_name(r: int, c: int) -> str:
@@ -151,7 +154,7 @@ async def simulation_loop():
                 await ws.send_text(json.dumps(state))
             except Exception:
                 dead.add(ws)
-        ws_clients -= dead
+        ws_clients.difference_update(dead)
 
 
 @asynccontextmanager
@@ -200,6 +203,10 @@ def _build_venue_payload() -> dict:
         "tick": venue.tick_count,
         "incentive_events": [e.model_dump() for e in latest_incentives],
         "agent_logs": agent_logs[:15],  # Send latest 15 log entries
+        # UPGRADE: Atmosphere Metrics
+        "noise_level_db": venue.noise_level_db,
+        "air_quality_aqi": venue.air_quality_aqi,
+        "wifi_mesh_mbps": venue.wifi_mesh_mbps,
     }
 
 
@@ -225,9 +232,13 @@ async def get_seats():
 @app.post("/find-path", response_model=PathResponse)
 async def find_path(req: PathRequest):
     """Calculate the Cool Path from a start point to a seat."""
-    coords = venue.get_seat_coords(req.seat_id)
-    if coords is None:
-        raise HTTPException(status_code=404, detail=f"Seat '{req.seat_id}' not found")
+    if req.seat_id.startswith("POI_"):
+        poi_map = {"POI_WASHROOM": (0, 9), "POI_WATER": (9, 0), "POI_FOOD": (9, 9)}
+        coords = poi_map.get(req.seat_id, (0, 0))
+    else:
+        coords = venue.get_seat_coords(req.seat_id)
+        if coords is None:
+            raise HTTPException(status_code=404, detail=f"Seat '{req.seat_id}' not found")
 
     target_row, target_col = coords
     path, cost = flow_agent.find_cool_path(
@@ -287,30 +298,39 @@ async def queue_stats():
 async def scenario_full_surge():
     """Simulate a match ending — full crowd surge to exits."""
     venue.apply_full_surge()
-    add_agent_log("FlowAgent", "⚠️ FULL SURGE DETECTED — Match has ended. All exits experiencing critical congestion. Activating emergency corridor routing.", "critical")
-    add_agent_log("SyncAgent", "🎯 Mass incentive deployment — Trivia challenges and delay vouchers dispatched to ALL gates.", "critical")
-    add_agent_log("Guardian", "🔒 Full surge protocol active. All medic teams on standby. Monitoring for crowd crush indicators.", "warning")
+    add_agent_log("FLOW_AGENT", ">> SURGE DETECTED. Core exits at 100%. Dynamic load balancing active.", "critical")
+    add_agent_log("SYNC_AGENT", ">> OVERRIDE: Deploying mass trivia challenges to all exit vectors.", "critical")
+    add_agent_log("GUARDIAN", ">> CRUSH PROTOCOL ENGAGED. Monitoring sector pressures.", "warning")
     return {"status": "applied", "scenario": "full_surge"}
 
 
-@app.post("/scenario/medical-emergency")
-async def scenario_medical():
-    """Simulate a medical emergency at seat E4."""
-    venue.apply_medical_emergency("E4")
+@app.post("/scenario/medical-priority-one")
+async def scenario_medical_priority():
+    """Simulate a medical priority one at seat E4."""
+    venue.apply_medical_priority("E4")
     sos_result = guardian_agent.handle_sos("E4")
-    add_agent_log("Guardian", "🚨 MEDICAL EMERGENCY — Seat E4 sector. Crowd density spike detected around incident zone. Dispatching medic team.", "critical")
-    add_agent_log("FlowAgent", "Re-routing all pathing away from E4 sector. Creating emergency access corridor through Central Stand.", "critical")
-    add_agent_log("SyncAgent", "Freezing incentive events in affected zone. Priority clearance mode active.", "warning")
-    return {"status": "applied", "scenario": "medical_emergency", "sos": sos_result.model_dump() if sos_result else None}
+    add_agent_log("GUARDIAN", ">> MEDICAL PRIORITY ONE — SEC_E4. Critical density anomaly. Dispatching trauma element.", "critical")
+    add_agent_log("FLOW_AGENT", ">> REROUTING CORE C2. Establishing secure corridor through Central Axis.", "critical")
+    add_agent_log("SYNC_AGENT", ">> INCENTIVES SUSPENDED. Priority mode active.", "warning")
+    return {"status": "applied", "scenario": "medical_priority_one", "sos": sos_result.model_dump() if sos_result else None}
+
+
+@app.post("/scenario/power-outage")
+async def scenario_power_outage():
+    """Simulate a total power outage."""
+    venue.apply_power_outage()
+    add_agent_log("GUARDIAN", ">> SYSTEM FAILURE: GRID OFFLINE. Triggering fail-safe illumination.", "critical")
+    add_agent_log("FLOW_AGENT", ">> MASS BOTTLENECK DETECTED. Executing blackout vector redirection.", "critical")
+    return {"status": "applied", "scenario": "power_outage"}
 
 
 @app.post("/scenario/gate-blockage")
 async def scenario_gate_blockage():
-    """Simulate Gate 3 blockage."""
-    venue.apply_gate_blockage(3)
-    add_agent_log("FlowAgent", "🚧 GATE 3 BLOCKAGE — Column 3 completely jammed. Redirecting all foot traffic to Gates 5-9. Estimated clearance: 8 minutes.", "critical")
-    add_agent_log("SyncAgent", "Deploying heavy incentives at Gate 3. BOGO drinks and exclusive merch discounts activated to hold crowd.", "warning")
-    add_agent_log("Guardian", "Security team deployed to Gate 3. Monitoring for crowd pressure escalation.", "warning")
+    """Simulate a jammed gate at column 3."""
+    venue.apply_gate_blockage(gate_col=3)
+    add_agent_log("SYNC_AGENT", ">> Congestion at Gate (0,3) detected. Rerouting traffic to Gate East.", "critical")
+    add_agent_log("FLOW_AGENT", ">> Gate North jam confirmed. Diverging all inbound vectors via Aisle Row 6.", "warning")
+    add_agent_log("GUARDIAN", ">> Checkpoint lockdown at G-0,3. Physical intercept dispatched.", "warning")
     return {"status": "applied", "scenario": "gate_blockage"}
 
 

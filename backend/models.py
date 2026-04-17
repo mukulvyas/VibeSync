@@ -19,6 +19,10 @@ class VenueState(BaseModel):
     grid: list[list[CellState]]
     tick: int
     incentive_events: list["IncentiveEvent"] = []
+    # UPGRADE: Atmosphere Metrics
+    noise_level_db: float
+    air_quality_aqi: int
+    wifi_mesh_mbps: int
 
 
 # ── Flow Agent (Cool Path) ────────────────────────────
@@ -66,6 +70,7 @@ class SOSResponse(BaseModel):
     alert_level: str = "HIGH"
     message: str
     timestamp: str
+    path: Optional[list[PathStep]] = None
 
 
 class StaffAlert(BaseModel):
@@ -77,6 +82,7 @@ class StaffAlert(BaseModel):
     message: str
     timestamp: str
     resolved: bool = False
+    path: Optional[list[PathStep]] = None
 
 
 # ── Line-Buddy ────────────────────────────────────────

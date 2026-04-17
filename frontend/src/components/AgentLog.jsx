@@ -12,10 +12,10 @@ export default function AgentLog({ logs = [] }) {
 
   function agentColor(agent) {
     switch (agent) {
-      case 'FlowAgent': return '#06b6d4';
-      case 'SyncAgent': return '#d946ef';
-      case 'Guardian':  return '#ef4444';
-      default:          return '#64748b';
+      case 'FLOW_AGENT': return '#06b6d4';
+      case 'SYNC_AGENT': return '#d946ef';
+      case 'GUARDIAN':   return '#ef4444';
+      default:           return '#64748b';
     }
   }
 
@@ -29,16 +29,15 @@ export default function AgentLog({ logs = [] }) {
 
   return (
     <div className="neural-glass-panel flex flex-col">
-      {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-        <span className="text-[10px] font-bold tracking-[0.25em] uppercase" style={{ color: 'rgba(6,182,212,0.6)' }}>
-          Agent Neural Link
+        <div className="w-2 h-2 rounded-none bg-cyan-400 animate-pulse" />
+        <span className="text-[10px] font-bold tracking-[0.25em] uppercase" style={{ color: '#06b6d4' }}>
+          AURA-CORE: NEURAL INTERCEPT
         </span>
         <div className="ml-auto flex gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/30" />
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500/30" />
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500/30" />
+          <span className="w-1.5 h-1.5 bg-cyan-500/50" />
+          <span className="w-1.5 h-1.5 bg-cyan-500/50" />
+          <span className="w-1.5 h-1.5 bg-cyan-500/50" />
         </div>
       </div>
 
@@ -50,10 +49,10 @@ export default function AgentLog({ logs = [] }) {
       >
         {logs.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-600 text-[10px] tracking-widest uppercase">Awaiting agent signals...</p>
+            <p className="text-gray-600 text-[10px] tracking-widest uppercase">Awaiting intercept...</p>
             <div className="mt-2 flex justify-center gap-1">
               {[0, 1, 2].map(i => (
-                <div key={i} className="w-1 h-1 rounded-full bg-cyan-500/30 animate-pulse"
+                <div key={i} className="w-1 h-1 rounded-none bg-cyan-500/30 animate-pulse"
                   style={{ animationDelay: `${i * 0.3}s` }} />
               ))}
             </div>
@@ -67,7 +66,7 @@ export default function AgentLog({ logs = [] }) {
             return (
               <div
                 key={`${log.timestamp}-${i}`}
-                className="flex gap-2 py-1.5 px-2 rounded-md transition-all duration-300 text-[10px] leading-relaxed"
+                className="flex gap-2 py-1.5 px-2 rounded-none transition-all duration-300 text-[10px] leading-relaxed"
                 style={{
                   background: style.bg,
                   borderLeft: `2px solid ${style.border}`,
@@ -75,7 +74,7 @@ export default function AgentLog({ logs = [] }) {
                 }}
               >
                 <span className="text-gray-600 shrink-0 tabular-nums">{time}</span>
-                <span className="shrink-0 font-bold" style={{ color: agentColor(log.agent), minWidth: '68px' }}>
+                <span className="shrink-0 font-bold" style={{ color: agentColor(log.agent), minWidth: '72px' }}>
                   [{log.agent}]
                 </span>
                 <span className={`${
@@ -83,7 +82,13 @@ export default function AgentLog({ logs = [] }) {
                   log.level === 'warning' ? 'text-amber-300/80' :
                   'text-gray-400/80'
                 }`}>
-                  {log.message}
+                  {/* Bold-highlight the ">>" autonomous decision prefix */}
+                  {log.message.startsWith('>>') ? (
+                    <>
+                      <span style={{ color: '#06b6d4', fontWeight: 800 }}>&gt;&gt;</span>
+                      {log.message.slice(2)}
+                    </>
+                  ) : log.message}
                 </span>
               </div>
             );

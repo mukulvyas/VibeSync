@@ -23,6 +23,35 @@ class FlowAgent:
         """
         rows, cols = self.venue.ROWS, self.venue.COLS
 
+        valid_types = ("aisle", "concourse", "gate")
+
+        target_cell = self.venue.get_cell(target_row, target_col)
+        if target_cell["cell_type"] not in valid_types:
+            best_r, best_c, min_dist = target_row, target_col, float('inf')
+            for r in range(rows):
+                for c in range(cols):
+                    cell = self.venue.get_cell(r, c)
+                    if cell["cell_type"] in valid_types:
+                        dist = abs(r - target_row) + abs(c - target_col)
+                        if dist < min_dist:
+                            min_dist = dist
+                            best_r, best_c = r, c
+            target_row, target_col = best_r, best_c
+
+        # Also map start_row/start_col to nearest valid terrain
+        start_cell = self.venue.get_cell(start_row, start_col)
+        if start_cell["cell_type"] not in valid_types:
+            best_sr, best_sc, min_sdist = start_row, start_col, float('inf')
+            for r in range(rows):
+                for c in range(cols):
+                    cell = self.venue.get_cell(r, c)
+                    if cell["cell_type"] in valid_types:
+                        sdist = abs(r - start_row) + abs(c - start_col)
+                        if sdist < min_sdist:
+                            min_sdist = sdist
+                            best_sr, best_sc = r, c
+            start_row, start_col = best_sr, best_sc
+
         # Priority queue: (f_score, counter, row, col)
         counter = 0
         open_set = []
@@ -41,7 +70,16 @@ class FlowAgent:
 
             for nr, nc in self._neighbors(r, c, rows, cols):
                 cell = self.venue.get_cell(nr, nc)
-                move_cost = cell["density"] * 5.0 + cell["temperature"] * 0.1 + 1.0
+                
+                # Enforce Sovereign Layout Rules (Aisles only)
+                if cell["cell_type"] not in valid_types:
+                    move_cost = float('inf')
+                else:
+                    move_cost = cell["density"] * 5.0 + cell["temperature"] * 0.1 + 1.0
+
+                if move_cost == float('inf'):
+                    continue
+                
                 tentative_g = g_score[(r, c)] + move_cost
 
                 if (nr, nc) not in g_score or tentative_g < g_score[(nr, nc)]:

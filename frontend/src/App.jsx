@@ -1,231 +1,249 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useVenueData } from './hooks/useVenueData';
 import VibeMap from './components/VibeMap';
-import FindMySeat from './components/FindMySeat';
-import LineBuddy from './components/LineBuddy';
+import AttendeeFocus from './components/AttendeeFocus';
+import AtmosphereMetrics from './components/AtmosphereMetrics';
+import ZoneStatusList from './components/ZoneStatusList';
 import GuardianSOS from './components/GuardianSOS';
-import StaffDashboard from './components/StaffDashboard';
-import IncentiveToast from './components/IncentiveToast';
 import AgentLog from './components/AgentLog';
-import ScenarioPanel from './components/ScenarioPanel';
+import IncentiveToast from './components/IncentiveToast';
+import { findPath } from './utils/api';
 
 export default function App() {
-  const { venueData, incentives, agentLogs, connected, tick, dismissIncentive } = useVenueData();
+  const { venueData, incentives, agentLogs, connected, tick, dismissIncentive, atmosphere } = useVenueData();
+  const [staffMode, setStaffMode] = useState(false);
   const [path, setPath] = useState(null);
   const [sosAlerts, setSosAlerts] = useState([]);
-  const [staffMode, setStaffMode] = useState(false);
-  const [tapCount, setTapCount] = useState(0);
-  const [selectedCell, setSelectedCell] = useState(null);
+  const [activeTab, setActiveTab] = useState('MAP'); // MAP, SERVICES, ALERTS, LOGS
+  const [activeStaffTask, setActiveStaffTask] = useState('ANALYTICS'); // ANALYTICS, LOGISTICS, SECURITY, TICKETING
 
-  // Triple-tap on logo to toggle staff mode
-  function handleLogoClick() {
-    const next = tapCount + 1;
-    if (next >= 3) {
-      setStaffMode((prev) => !prev);
-      setTapCount(0);
-    } else {
-      setTapCount(next);
-      setTimeout(() => setTapCount(0), 2000);
-    }
-  }
+  // Match countdown: 14:02:04
+  const [matchSeconds, setMatchSeconds] = useState(842);
 
-  const handleAlertsUpdate = useCallback((alerts) => {
-    setSosAlerts(alerts);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMatchSeconds(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  // Compute live stats
-  const liveStats = venueData ? computeStats(venueData) : null;
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  };
+
+  const handleAction = async (type) => {
+    if (type === 'GUIDE_SEAT' || type.startsWith('POI_')) {
+      const target = type === 'GUIDE_SEAT' ? 'N13' : type; // Mocking seat target
+      try {
+        const data = await findPath(target, 0, 0); // Mock start at 0,0
+        setPath(data.path);
+        setActiveTab('MAP');
+      } catch (e) {
+        console.error('Pathfind failed:', e);
+      }
+    }
+  };
 
   return (
-    <div className="min-h-screen ambient-bg">
-      {/* ── Header ──────────────────────────── */}
-      <header className="sticky top-0 z-30" style={{
-        background: 'rgba(11,14,20,0.85)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
-      }}>
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer select-none" onClick={handleLogoClick}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, #06b6d4, #d946ef)',
-                boxShadow: '0 0 20px rgba(6,182,212,0.3)',
-              }}>
-              <span className="text-xl">🎶</span>
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-wide text-glow-cyan"
-                style={{
-                  background: 'linear-gradient(135deg, #06b6d4, #fff, #d946ef)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}>
-                VibeSync
-              </h1>
-              <p className="text-[9px] text-gray-600 -mt-0.5 tracking-[0.3em] uppercase">
-                Stadium Operations
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Live stats pills */}
-            {liveStats && (
-              <div className="hidden md:flex items-center gap-3">
-                <StatPill label="AVG" value={`${liveStats.avgDensity}%`} color="#06b6d4" />
-                <StatPill label="PEAK" value={`${liveStats.peakDensity}%`} color={liveStats.peakDensity > 80 ? '#ef4444' : '#f59e0b'} />
-                <StatPill label="TEMP" value={`${liveStats.avgTemp}°`} color="#84cc16" />
-              </div>
-            )}
-
-            {/* Connection status */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`}
-                style={{ boxShadow: connected ? '0 0 8px rgba(74,222,128,0.5)' : undefined }} />
-              <span className="text-gray-500 hidden sm:inline">{connected ? 'LIVE' : 'OFFLINE'}</span>
-              {connected && <span className="text-gray-700 tabular-nums font-mono text-[10px]">T:{tick}</span>}
-            </div>
-
-            {/* Staff mode badge */}
-            {staffMode && (
-              <div className="px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider animate-pulse"
-                style={{
-                  background: 'rgba(239,68,68,0.12)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  color: '#ef4444',
-                }}>
-                🔒 STAFF MODE
-              </div>
-            )}
-          </div>
+    <div className="flex h-screen overflow-hidden bg-bg-space font-mono selection:bg-cyan-tactical/30">
+      {/* ── Left Rail Sidebar ── */}
+      <aside className="w-[80px] flex-shrink-0 tactical-sidebar">
+        <div className="h-[80px] flex items-center justify-center border-b border-border-dim">
+           <div className="w-10 h-10 border border-cyan-tactical flex items-center justify-center text-cyan-tactical font-bold text-xl">⬡</div>
         </div>
-      </header>
+        <div className="flex-1 py-8 flex flex-col items-center gap-1">
+          <SidebarIcon icon="📁" label="COMMAND" active />
+          <SidebarIcon icon="🛰️" label="ZONES" />
+          <SidebarIcon icon="📦" label="ASSETS" />
+          <SidebarIcon icon="💬" label="COMMS" />
+          <SidebarIcon icon="🔍" label="INTEL" />
+        </div>
+        <div className="p-4 border-t border-border-dim flex flex-col items-center gap-4">
+           <div className="p-2 border border-red-tactical/30 text-red-tactical">⚠️</div>
+           <button className="w-10 h-10 rounded-full border border-border-dim overflow-hidden">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="user" />
+           </button>
+        </div>
+      </aside>
 
-      {/* ── Main Content ────────────────────── */}
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
-        {staffMode ? (
-          /* ── Staff Operations View ─────── */
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
-            <div className="xl:col-span-8 min-w-0">
-              <VibeMap venueData={venueData} path={path} sosAlerts={sosAlerts} onCellClick={setSelectedCell} />
-            </div>
-            <div className="xl:col-span-4 space-y-5 min-w-0">
-              <StaffDashboard onAlertsUpdate={handleAlertsUpdate} />
-              <AgentLog logs={agentLogs} />
-            </div>
-          </div>
-        ) : (
-          /* ── Main Operations Dashboard ── */
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
-            {/* Left: Arena Map */}
-            <div className="xl:col-span-8 space-y-5 min-w-0">
-              <VibeMap
-                venueData={venueData}
-                path={path}
-                sosAlerts={sosAlerts}
-                onCellClick={setSelectedCell}
+      {/* ── Main Content Area ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* ── Header ── */}
+        <header className="h-[80px] flex-shrink-0 flex items-center justify-between px-8 border-b border-border-dim bg-bg-panel/50 backdrop-blur-md">
+           <div className="flex items-center gap-12">
+              <h1 className="text-xl font-bold tracking-[0.3em] text-white">
+                 {staffMode ? 'STADIUM_CORE' : 'SENTINEL COMMAND'}
+              </h1>
+              
+              {/* Navigation Tabs */}
+              <nav className="flex gap-8 h-[80px]">
+                 {staffMode ? (
+                   ['ANALYTICS', 'LOGISTICS', 'SECURITY', 'TICKETING'].map(t => (
+                     <button key={t} onClick={() => setActiveStaffTask(t)} 
+                       className={`h-full border-b-2 transition-all px-2 text-[11px] font-bold tracking-widest ${activeStaffTask === t ? 'border-cyan-tactical text-cyan-tactical' : 'border-transparent text-text-dim hover:text-white'}`}>
+                       {t}
+                     </button>
+                   ))
+                 ) : (
+                   ['MAP', 'SERVICES', 'ALERTS', 'LOGS'].map(t => (
+                     <button key={t} onClick={() => setActiveTab(t)} 
+                       className={`h-full border-b-2 transition-all px-2 text-[11px] font-bold tracking-widest ${activeTab === t ? 'border-cyan-tactical text-cyan-tactical' : 'border-transparent text-text-dim hover:text-white'}`}>
+                       {t}
+                     </button>
+                   ))
+                 )}
+              </nav>
+           </div>
+
+           <div className="flex items-center gap-6">
+              {/* Mode Switcher — Button Style */}
+              <div className="flex bg-bg-space/80 border border-border-dim p-1">
+                 <button 
+                   onClick={() => setStaffMode(true)}
+                   className={`px-3 py-1 text-[10px] font-bold tracking-widest transition-all ${staffMode ? 'bg-cyan-tactical text-bg-space' : 'text-text-dim hover:text-white'}`}
+                 >
+                   STAFF_OPS
+                 </button>
+                 <button 
+                   onClick={() => setStaffMode(false)}
+                   className={`px-3 py-1 text-[10px] font-bold tracking-widest transition-all ${!staffMode ? 'bg-cyan-tactical text-bg-space' : 'text-text-dim hover:text-white'}`}
+                 >
+                   ATTENDEE
+                 </button>
+              </div>
+
+              <div className="h-4 w-[1px] bg-border-dim" />
+              
+              <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-cyan-tactical animate-pulse" />
+                 <span className="text-[10px] font-bold text-cyan-tactical uppercase tracking-widest">LIVE_FEED</span>
+              </div>
+           </div>
+        </header>
+
+        {/* ── Dashboad Content ── */}
+        <div className="flex-1 flex min-h-0">
+           
+           {/* LEFT SIDEBAR (Focused Data) */}
+           <aside className="w-[320px] flex-shrink-0 border-r border-border-dim p-6 overflow-y-auto">
+              {staffMode ? (
+                <div className="space-y-8">
+                   <MetricBox label="TOTAL_ATTENDANCE" value="54,821" sub="+2.4% CAPACITY" status="UP" />
+                   <MetricBox label="FLOW_RATE_NORTH" value="412" sub="P/MIN" bar={75} />
+                   <MetricBox label="SECURITY_ALERTS" value="02" sub="GATE_4_SENS_HIGH" status="CRITICAL" />
+                   <div className="pt-8">
+                      <button className="btn-tactical w-full py-4 tracking-[0.4em]">DEPLOY_RESOURCES</button>
+                   </div>
+                </div>
+              ) : (
+                <AttendeeFocus onAction={handleAction} />
+              )}
+           </aside>
+
+           {/* CENTER (Interactive Map) */}
+           <main className="flex-1 relative flex flex-col p-6 overflow-hidden">
+              <VibeMap 
+                venueData={venueData} 
+                path={path} 
+                sosAlerts={sosAlerts} 
+                attendeeMode={!staffMode} 
               />
+           </main>
 
-              {/* Selected cell detail bar */}
-              {selectedCell && (
-                <div className="glass-card p-4 flex items-center justify-between" style={{ animation: 'logSlideIn 0.3s ease-out' }}>
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Selected Sector</p>
-                    <p className="text-sm text-white font-semibold mt-0.5">
-                      {selectedCell.seat_id || `${selectedCell.cell_type.toUpperCase()} (${selectedCell.row}, ${selectedCell.col})`}
-                    </p>
-                  </div>
-                  <div className="flex gap-6 text-center">
-                    <div>
-                      <p className="text-[9px] text-gray-600 uppercase tracking-wider">Density</p>
-                      <p className={`text-sm font-bold tabular-nums ${
-                        selectedCell.density > 0.7 ? 'text-red-400' :
-                        selectedCell.density > 0.4 ? 'text-amber-400' : 'text-green-400'
-                      }`}>
-                        {(selectedCell.density * 100).toFixed(0)}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] text-gray-600 uppercase tracking-wider">Temp</p>
-                      <p className="text-sm font-bold text-cyan-400 tabular-nums">{selectedCell.temperature}°C</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] text-gray-600 uppercase tracking-wider">Type</p>
-                      <p className="text-sm font-bold text-gray-300">{selectedCell.cell_type}</p>
-                    </div>
-                  </div>
+           {/* RIGHT SIDEBAR (Monitoring) */}
+           <aside className="w-[320px] flex-shrink-0 border-l border-border-dim p-6 overflow-y-auto">
+              {staffMode ? (
+                <ZoneStatusList venueData={venueData} />
+              ) : (
+                <div className="space-y-12">
+                   <AtmosphereMetrics 
+                     noise={atmosphere?.noise_level_db || 0} 
+                     aqi={atmosphere?.air_quality_aqi || 0} 
+                     wifi={atmosphere?.wifi_mesh_mbps || 0} 
+                   />
+                   
+                   <div className="space-y-4">
+                      <SectionHeader label="CURRENT EVENT" />
+                      <div className="metric-card">
+                         <h4 className="text-[10px] font-bold tracking-widest text-[#5a7a8a] uppercase mb-1">CYBER-FINALS 2024: ALPHA VS OMEGA</h4>
+                         <p className="text-3xl font-bold font-rajdhani text-white tracking-widest">{formatTime(matchSeconds)}</p>
+                         <div className="mt-4 h-[2px] w-full bg-bg-space">
+                            <div className="h-full bg-red-tactical" style={{ width: `${(matchSeconds/842)*100}%` }} />
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="pt-8">
+                      <button className="btn-tactical w-full py-3 flex items-center justify-center gap-3 group">
+                         <span className="text-lg group-hover:scale-110 transition-transform">🎧</span>
+                         REQUEST ASSISTANCE
+                      </button>
+                   </div>
                 </div>
               )}
+           </aside>
 
-              {/* Scenario Injection */}
-              <ScenarioPanel />
-            </div>
-
-            {/* Right: Sidebar */}
-            <div className="xl:col-span-4 space-y-5 min-w-0">
-              {/* Agent Neural Link */}
-              <AgentLog logs={agentLogs} />
-
-              {/* Controls */}
-              <FindMySeat onPathFound={setPath} onClear={() => setPath(null)} />
-              <LineBuddy />
-              <GuardianSOS />
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* ── Footer ──────────────────────────── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }} className="mt-8">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between text-[10px] text-gray-700 tracking-wider uppercase">
-          <p>VibeSync v2.0 — Stadium Operations AI</p>
-          <p className="hidden sm:flex items-center gap-3">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-cyan-800" /> FlowAgent</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-purple-800" /> SyncAgent</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-800" /> Guardian</span>
-          </p>
         </div>
-      </footer>
 
-      {/* ── Incentive Toast (floating) ──────── */}
+        {/* ── Footer Status ── */}
+        <footer className="h-[40px] flex-shrink-0 border-t border-border-dim bg-bg-panel/80 flex items-center justify-between px-6 text-[9px] font-mono font-bold tracking-widest text-text-dim uppercase">
+           <div className="flex gap-8">
+              <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-cyan-tactical" /> SYSTEM_STABLE</span>
+              <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-[#5a7a8a]" /> UPLINK_ENCRYPTED</span>
+           </div>
+           <div className="flex gap-8">
+              <span>LATENCY: 14MS</span>
+              <span>ENC: AES-256-GCM</span>
+              <span>CORE_TEMP: 34°C</span>
+           </div>
+        </footer>
+
+      </div>
+
       <IncentiveToast incentives={incentives} onDismiss={dismissIncentive} />
     </div>
   );
 }
 
-
-/* ── Stat Pill Sub-component ─────────────────── */
-function StatPill({ label, value, color }) {
+function SidebarIcon({ icon, label, active }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1 rounded-lg"
-      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-      <span className="text-[9px] font-bold tracking-wider uppercase" style={{ color: `${color}80` }}>{label}</span>
-      <span className="text-xs font-bold tabular-nums" style={{ color }}>{value}</span>
+    <div className={`sidebar-nav-item w-full ${active ? 'active' : ''}`}>
+       <div className="text-xl mb-1">{icon}</div>
+       <span className="text-[9px] font-bold tracking-tight">{label}</span>
     </div>
   );
 }
 
+function SectionHeader({ label }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <div className="w-1.5 h-1.5 bg-cyan-tactical rotate-45" />
+      <span className="text-[11px] font-bold tracking-[0.2em] text-text-dim uppercase">{label}</span>
+    </div>
+  );
+}
 
-/* ── Stats Calculator ────────────────────────── */
-function computeStats(grid) {
-  let totalDensity = 0;
-  let totalTemp = 0;
-  let peakDensity = 0;
-  let count = 0;
-
-  for (const row of grid) {
-    for (const cell of row) {
-      totalDensity += cell.density;
-      totalTemp += cell.temperature;
-      peakDensity = Math.max(peakDensity, cell.density);
-      count++;
-    }
-  }
-
-  return {
-    avgDensity: Math.round((totalDensity / count) * 100),
-    peakDensity: Math.round(peakDensity * 100),
-    avgTemp: (totalTemp / count).toFixed(1),
-  };
+function MetricBox({ label, value, sub, status, bar }) {
+  return (
+    <div className="metric-card space-y-2">
+       <p className="text-[9px] font-mono tracking-widest text-[#5a7a8a] uppercase">{label}</p>
+       <div className="flex justify-between items-end">
+          <span className="text-4xl font-rajdhani font-bold text-white tracking-widest">{value}</span>
+          {status && (
+            <span className={`text-[10px] font-bold pb-1 ${status === 'CRITICAL' ? 'text-red-tactical' : 'text-cyan-tactical'}`}>
+               {status === 'UP' ? '↗' : ''} {sub}
+            </span>
+          )}
+       </div>
+       {!status && <p className="text-[10px] text-cyan-tactical/60 tracking-widest">{sub}</p>}
+       {bar && (
+         <div className="h-1 w-full bg-bg-space mt-4">
+            <div className="h-full bg-cyan-tactical" style={{ width: `${bar}%` }} />
+         </div>
+       )}
+    </div>
+  );
 }

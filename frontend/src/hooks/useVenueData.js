@@ -12,6 +12,7 @@ export function useVenueData() {
   const [agentLogs, setAgentLogs] = useState([]);
   const [connected, setConnected] = useState(false);
   const [tick, setTick] = useState(0);
+  const [atmosphere, setAtmosphere] = useState({ noise_level_db: 0, air_quality_aqi: 0, wifi_mesh_mbps: 0 });
   const wsRef = useRef(null);
   const reconnectTimer = useRef(null);
 
@@ -38,6 +39,15 @@ export function useVenueData() {
 
         if (data.agent_logs) {
           setAgentLogs(data.agent_logs);
+        }
+
+        // UPGRADE: Extract atmosphere metrics
+        if (data.noise_level_db !== undefined) {
+          setAtmosphere({
+            noise_level_db: data.noise_level_db,
+            air_quality_aqi: data.air_quality_aqi,
+            wifi_mesh_mbps: data.wifi_mesh_mbps
+          });
         }
       } catch (e) {
         console.error('[VibeSync] Parse error:', e);
@@ -68,5 +78,5 @@ export function useVenueData() {
     setIncentives(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  return { venueData, incentives, agentLogs, connected, tick, dismissIncentive };
+  return { venueData, incentives, agentLogs, connected, tick, dismissIncentive, atmosphere };
 }

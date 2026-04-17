@@ -6,21 +6,24 @@ import { findPath } from '../utils/api';
  */
 export default function FindMySeat({ onPathFound, onClear }) {
   const [seatId, setSeatId] = useState('');
-  const [startRow, setStartRow] = useState(0);
-  const [startCol, setStartCol] = useState(0);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
-  async function handleFind() {
-    if (!seatId.trim()) {
+  // Fixed attendee start location (Gate 1 - 0,0) for simplicity or POI paths
+  const startRow = 0;
+  const startCol = 0;
+
+  async function handleFind(targetId = null) {
+    const target = targetId || seatId;
+    if (!target || !target.trim()) {
       setError('Enter a seat ID (e.g., D5)');
       return;
     }
     setError('');
     setLoading(true);
     try {
-      const data = await findPath(seatId.trim(), startRow, startCol);
+      const data = await findPath(target.trim(), startRow, startCol);
       setResult(data);
       onPathFound?.(data.path);
     } catch (e) {
@@ -38,78 +41,55 @@ export default function FindMySeat({ onPathFound, onClear }) {
   }
 
   return (
-    <div className="glass-card p-5 animate-fade-in">
-      <h3 className="section-title text-sm mb-3">🧭 Find My Seat</h3>
+    <div className="glass-card p-5 animate-fade-in shadow-xl">
+      <h3 className="section-title text-sm mb-4">📍 Find Nearest</h3>
+
+      {/* POI Buttons */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <button onClick={() => handleFind('POI_WASHROOM')} className="bg-[#020617] border border-cyan-500/30 hover:border-cyan-400 p-3 flex flex-col items-center justify-center transition-all text-gray-300 hover:text-cyan-400">
+          <span className="text-2xl mb-1">🚻</span>
+          <span className="text-[10px] uppercase font-bold tracking-widest">Washroom</span>
+        </button>
+        <button onClick={() => handleFind('POI_WATER')} className="bg-[#020617] border border-cyan-500/30 hover:border-cyan-400 p-3 flex flex-col items-center justify-center transition-all text-gray-300 hover:text-cyan-400">
+          <span className="text-2xl mb-1">💧</span>
+          <span className="text-[10px] uppercase font-bold tracking-widest">Hydration</span>
+        </button>
+        <button onClick={() => handleFind('POI_FOOD')} className="bg-[#020617] border border-cyan-500/30 hover:border-cyan-400 p-3 flex flex-col items-center justify-center transition-all text-gray-300 hover:text-cyan-400">
+          <span className="text-2xl mb-1">🍔</span>
+          <span className="text-[10px] uppercase font-bold tracking-widest">Food</span>
+        </button>
+      </div>
 
       <div className="space-y-3">
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">Seat ID</label>
-          <input
-            type="text"
-            value={seatId}
-            onChange={(e) => setSeatId(e.target.value.toUpperCase())}
-            placeholder="e.g. D5, A3, H8"
-            className="input-field text-sm"
-            maxLength={4}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Start Row</label>
+          <label className="text-xs text-gray-400 mb-1 block">Or find a specific Seat:</label>
+          <div className="flex gap-2">
             <input
-              type="number"
-              value={startRow}
-              onChange={(e) => setStartRow(Number(e.target.value))}
-              min={0}
-              max={9}
-              className="input-field text-sm"
+              type="text"
+              value={seatId}
+              onChange={(e) => setSeatId(e.target.value.toUpperCase())}
+              placeholder="e.g. N13, S74, W31"
+              className="input-field text-sm w-full"
+              maxLength={4}
             />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">Start Col</label>
-            <input
-              type="number"
-              value={startCol}
-              onChange={(e) => setStartCol(Number(e.target.value))}
-              min={0}
-              max={9}
-              className="input-field text-sm"
-            />
-          </div>
-        </div>
-
-        {error && (
-          <p className="text-xs text-vibe-red">{error}</p>
-        )}
-
-        <div className="flex gap-2">
-          <button onClick={handleFind} disabled={loading} className="btn-primary text-sm flex-1">
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-vibe-dark/30 border-t-vibe-dark rounded-full animate-spin" />
-                Finding...
-              </span>
-            ) : (
-              '🗺️ Find Cool Path'
-            )}
-          </button>
-          {result && (
-            <button onClick={handleClear} className="btn-secondary text-sm">
-              Clear
+            <button onClick={() => handleFind()} disabled={loading} className="btn-primary px-4 whitespace-nowrap">
+              {loading ? '...' : 'Route'}
             </button>
-          )}
+            {result && (
+              <button onClick={handleClear} className="btn-danger px-4">X</button>
+            )}
+          </div>
         </div>
+
+        {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
 
         {result && (
-          <div className="mt-3 p-3 bg-vibe-dark/50 rounded-lg border border-vibe-cyan/20 animate-slide-up">
-            <p className="text-xs text-vibe-cyan font-semibold mb-1">Cool Path Found ✨</p>
-            <p className="text-xs text-gray-300">
-              Seat <strong>{result.seat_id}</strong> → ({result.target_row}, {result.target_col})
+          <div className="mt-4 p-4 text-center rounded-none border border-cyan-500/50 bg-cyan-950/20" style={{ animation: 'logSlideIn 0.3s ease-out' }}>
+            <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-1">Estimated Walk Time</p>
+            <p className="text-3xl font-mono text-cyan-400 font-bold mb-2">
+              {Math.max(1, Math.round(result.total_cost * 0.8))} <span className="text-sm">mins</span>
             </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {result.path.length} steps · Cost: {result.total_cost.toFixed(1)}
-            </p>
+            <p className="text-xs text-cyan-300 font-mono">Distance: {result.path.length * 12}m</p>
           </div>
         )}
       </div>
