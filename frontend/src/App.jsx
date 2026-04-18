@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useVenueData } from "./hooks/useVenueData";
 import VibeMap from "./components/VibeMap";
 import AttendeeFocus from "./components/AttendeeFocus";
@@ -16,13 +16,6 @@ import { findPath } from "./utils/api";
  * Changes: 3-Column Wide Grid, Predictive SVG Charts, Actionable Intelligence.
  */
 
-// POI Coordinates for proximity logic
-const POIS = {
-  WASHROOM: { row: 0, col: 9, label: "HUB_08_LVL2" },
-  HYDRATION: { row: 9, col: 0, label: "WATER_STAT_W" },
-  FOOD: { row: 9, col: 9, label: "SIG_GRILL_04" },
-};
-
 export default function App() {
   const {
     venueData,
@@ -38,52 +31,59 @@ export default function App() {
   const [sosAlerts, setSosAlerts] = useState([]);
 
   // Navigation & UI State
-  const [activeTab, setActiveTab] = useState("MAP");
   const [mobileTab, setMobileTab] = useState("HOME");
-  const [activeSidebar, setActiveSidebar] = useState("COMMAND");
-  const [activeStaffTask, setActiveStaffTask] = useState("ANALYTICS");
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [isInsightOpen, setIsInsightOpen] = useState(false);
+  const [overrideToast, setOverrideToast] = useState(false);
 
   // User position
-  const [userPos, setUserPos] = useState({ row: 7, col: 5 });
-  const [matchSeconds, setMatchSeconds] = useState(836);
+  const [userPos, setUserPos] = useState({ row: 8, col: 4 });
+  const [time, setTime] = useState(0);
 
   // Historical data for predictive charts (Mocked as trend)
   const [history, setHistory] = useState([45, 52, 48, 61, 55, 68, 72, 65, 80]);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setMatchSeconds((prev) => (prev > 0 ? prev - 1 : 0));
-      // Update trend slightly
       setHistory((h) => [
         ...h.slice(1),
         Math.max(30, Math.min(100, h[h.length - 1] + (Math.random() * 10 - 5))),
       ]);
     }, 1000);
-    return () => clearInterval(timer);
+
+    return () => {
+      clearInterval(timer);
+    };
   }, []);
 
   const proximities = useMemo(() => {
-    if (!venueData) return {};
-    const stats = {};
-    Object.entries(POIS).forEach(([key, coords]) => {
-      const dist = Math.sqrt(
-        Math.pow(coords.row - userPos.row, 2) +
-          Math.pow(coords.col - userPos.col, 2),
-      );
-      const congestion = venueData[coords.row][coords.col].density;
-      const meters = Math.round(dist * 12);
-      const minutes = Math.round((meters / 1.4 / 60) * (1 + congestion));
-      stats[key] = { meters, minutes, label: coords.label };
-    });
-    return stats;
-  }, [venueData, userPos]);
+    return {
+      WASHROOM: {
+        meters: 87,
+        wait: "2 min",
+        label: "HUB08",
+      },
+      HYDRATION: {
+        meters: 65,
+        wait: "No wait",
+        label: "Water Station",
+      },
+      FOOD: {
+        meters: 120,
+        wait: "5 min",
+        label: "Food Court",
+      },
+    };
+  }, []);
 
-  const formatTime = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  useEffect(() => {
+    const t = setInterval(() => setTime((p) => p + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const handleOverrideFlow = () => {
+    setOverrideToast(true);
+    setTimeout(() => setOverrideToast(false), 2600);
   };
 
   const handleAction = async (type) => {
@@ -92,15 +92,15 @@ export default function App() {
       try {
         const data = await findPath(targetStr, userPos.row, userPos.col);
         setPath(data.path);
-        setActiveTab("MAP");
+        setMobileTab("MAP"); // Stay on Map in mobile
       } catch (e) {
         console.error("Pathfind failed:", e);
       }
     }
   };
 
-  const renderAdminToggle = () => (
-    <div className="segmented-control">
+  const renderAdminToggle = (mini = false) => (
+    <div className={`segmented-control ${mini ? 'segmented-control-mini' : ''}`}>
       <button 
         className={`segment-btn ${staffMode ? 'active' : ''}`}
         onClick={() => setStaffMode(true)}
@@ -119,45 +119,16 @@ export default function App() {
   if (staffMode) {
     return (
       <div className="flex h-screen overflow-hidden font-sans selection:bg-cyan-tactical/30 text-text-primary theme-ops">
-        {/* ── Mission Control Sidebar ── */}
-        <aside className="ops-sidebar-rail">
-          <div className="h-[100px] flex items-center justify-center border-b border-white/5 bg-black/40 flex-shrink-0">
-            <div className="w-8 h-8 border-2 border-cyan-tactical flex items-center justify-center text-cyan-tactical font-black text-lg shadow-[0_0_20px_rgba(0,212,255,0.4)]">
-              VS
-            </div>
-          </div>
-          <div className="flex-1 py-8 flex flex-col gap-2">
-            <SidebarIcon icon="📁" label="Command" active={activeSidebar === "COMMAND"} onClick={() => setActiveSidebar("COMMAND")} />
-            <SidebarIcon icon="🛰️" label="Sensors" active={activeSidebar === "ZONES"} onClick={() => setActiveSidebar("ZONES")} />
-            <SidebarIcon icon="📦" label="Systems" active={activeSidebar === "ASSETS"} onClick={() => setActiveSidebar("ASSETS")} />
-            <SidebarIcon icon="💬" label="Alerts" active={activeSidebar === "COMMS"} onClick={() => setActiveSidebar("COMMS")} />
-          </div>
-          
-          <div className="sidebar-logo-mark">
-             <div className="text-[10px] font-black text-cyan-tactical tracking-[0.3em] opacity-40">VS</div>
-          </div>
-
-          <div className="p-4 border-t border-white/5 flex flex-col items-center gap-4 bg-black/40 flex-shrink-0">
-            <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden hover:border-cyan-tactical transition-all cursor-pointer shadow-lg">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="user" />
-            </div>
-          </div>
-        </aside>
-
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-[100px] flex-shrink-0 flex items-center justify-between px-10 border-b border-white/5 bg-[#0A0E1A]/95 backdrop-blur-3xl z-50 grid-texture">
-            <div className="flex items-center gap-16">
+            <div className="flex items-center gap-5">
+              <div className="w-8 h-8 border-2 border-cyan-tactical flex items-center justify-center text-cyan-tactical font-black text-lg shadow-[0_0_20px_rgba(0,212,255,0.4)]">
+                VS
+              </div>
               <div className="flex flex-col">
                 <h1 className="text-2xl font-black tracking-[0.1em] text-white font-heading">Ops Command</h1>
-                <span className="text-[10px] font-bold text-cyan-tactical/60 tracking-[0.2em] font-heading">Mission Control v4.0.2</span>
+                <span className="text-[10px] font-bold text-cyan-tactical/60 tracking-[0.2em] font-heading">Mission Control v4</span>
               </div>
-              <nav className="flex gap-2 h-full relative">
-                {["Dashboard", "Analytics", "Logistics", "Security"].map((t) => (
-                  <button key={t} onClick={() => setActiveStaffTask(t)} className={`h-full px-8 text-sm font-bold tracking-widest font-heading transition-colors ${activeStaffTask === t ? "text-cyan-tactical" : "text-text-dim hover:text-white"}`}>
-                    {t}
-                  </button>
-                ))}
-              </nav>
             </div>
             <div className="flex items-center gap-10">
               {renderAdminToggle()}
@@ -185,6 +156,13 @@ export default function App() {
                   <HealthBar label="Data Latency" value={14} max={100} unit="ms" color="#FFA502" />
                   <HealthBar label="Network Uplink" value={98} max={100} unit="%" color="#00D4FF" />
                 </div>
+                <button
+                  onClick={handleOverrideFlow}
+                  className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-[0.16em] text-white shadow-[0_4px_20px_rgba(239,68,68,0.4)]"
+                  style={{ background: "linear-gradient(135deg, #EF4444, #DC2626)" }}
+                >
+                  ⚠ Override AI Flow
+                </button>
               </div>
             </aside>
 
@@ -233,130 +211,129 @@ export default function App() {
             <span>✦</span>
           </button>
           <AIInsightDrawer isOpen={isInsightOpen} onClose={() => setIsInsightOpen(false)} />
+          <OverrideToast visible={overrideToast} />
         </div>
       </div>
     );
   }
 
-  // --- ATTENDEE MOBILE SIMULATION ---
+  // --- ATTENDEE RESPONSIVE LAYOUT ---
   return (
-    <div className="mobile-mockup-bg">
-      {/* Floating Demo Admin Toggle */}
-      <div className="fixed top-10 right-10 z-[200]">
-        {renderAdminToggle()}
-      </div>
-
-      <div className="phone-frame theme-attendee">
-        {/* Mobile Status Bar */}
-        <header className="mobile-status-bar font-data">
+    <div className="app-shell-centered theme-attendee">
+      {/* Top Status Bar */}
+      <header className="mobile-status-bar font-data">
+        <div className="attendee-shell-inner mobile-status-bar-inner">
           <div className="flex flex-col">
-            <span className="text-[8px] text-text-dim uppercase tracking-widest font-black">Your Location</span>
+            <span className="text-[8px] text-text-secondary uppercase tracking-[0.2em] font-black opacity-60">Your Location</span>
             <span className="text-[10px] text-white font-bold tracking-tight">SEC-SOUTH · Row 12 · Seat 43</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-             <span className="text-[9px] font-black text-white tracking-[0.2em]">LIVE</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#10b981]" />
+              <span className="text-[9px] font-black text-white tracking-[0.2em]">LIVE</span>
+            </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Scrollable Content Area */}
-        <main className="app-content app-screen-scroll">
-          {mobileTab === "HOME" && (
-            <div className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <AttendeeFocus attendeeOnly proximities={proximities} onAction={handleAction} />
-              
-              <AtmosphereMetrics 
-                noise={atmosphere.noise_level_db} 
-                aqi={atmosphere.air_quality_aqi} 
-                wifi={atmosphere.wifi_mesh_mbps} 
-              />
-              
-              {/* Match Clock Section */}
-              <div className="relative p-7 rounded-[16px] overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#0E1623] to-[#162030] border border-white/5 opacity-80" />
-                <div className="absolute inset-0 border border-ios-blue/20 rounded-[16px] pointer-events-none" />
-                
-                <div className="relative z-10 space-y-4">
-                  <div className="flex justify-between items-center px-1">
-                    <div className="pill-live flex items-center gap-2 text-[9px] font-bold text-white/60 uppercase tracking-widest">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      LIVE HUD
-                    </div>
-                    <span className="text-[10px] font-black text-white/40 tracking-[0.3em] font-heading">MATCH CLOCK</span>
-                  </div>
-                  
-                  <div className="flex justify-center items-center py-4 bg-black/20 rounded-2xl border border-white/5 shadow-inner">
-                    <div className="text-7xl font-black font-data text-white tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                      {String(Math.floor(matchSeconds / 60)).padStart(2, "0")}
-                      <span className="animate-blink text-ios-blue mx-1">:</span>
-                      {String(matchSeconds % 60).padStart(2, "0")}
-                    </div>
-                  </div>
+      <div className="attendee-toggle-floating">
+        {renderAdminToggle(true)}
+      </div>
 
-                  <div className="flex justify-between px-2 pt-2">
-                     <div className="flex flex-col">
-                        <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest mb-1">Current Quarter</span>
-                        <div className="text-lg font-black text-white font-data">Q2 · 14'</div>
-                     </div>
-                     <div className="flex flex-col text-right">
-                        <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest mb-1">Scoreboard</span>
-                        <div className="text-lg font-black text-[#F59E0B] font-data">84 - 72</div>
-                     </div>
-                  </div>
+      {/* Main Content Area */}
+      <div className="mobile-content-scroller no-scrollbar">
+        <div className="attendee-shell-inner">
+        {mobileTab === "HOME" && (
+          <div className="py-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-full overflow-hidden">
+            <div className="relative p-6 rounded-[24px] overflow-hidden border border-white/5 bg-gradient-to-br from-[#0E1623] to-[#162030] space-y-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] font-black tracking-[0.18em] text-[#F59E0B] uppercase">
+                    IND vs AUS · T20 · Live
+                  </p>
+                  <p className="mt-3 text-3xl font-black text-white font-data tracking-tight">
+                    IND 142/3 (14.2 ov)
+                  </p>
                 </div>
+                <span className="text-[11px] text-text-secondary font-bold">
+                  29degC · Clear sky
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-white/10 pt-4">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-text-secondary font-black">
+                  Match Clock
+                </span>
+                <span className="font-data text-3xl font-black text-white tracking-widest">
+                  {String(Math.floor(time / 60)).padStart(2, "0")}:
+                  {String(time % 60).padStart(2, "0")}
+                </span>
               </div>
             </div>
-          )}
 
-          {mobileTab === "MAP" && (
-            <div className="h-full relative animate-in fade-in duration-500">
-               <VibeMap venueData={venueData} path={path} sosAlerts={sosAlerts} attendeeMode={true} userPos={userPos} incentives={incentives} showHeatmap={showHeatmap} />
-               {/* Floating Heatmap Toggle for Mobile */}
-               <div className="absolute top-6 left-6">
-                <div className="flex items-center gap-3 bg-black/60 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-xl">
-                  <div className="w-10 h-5 bg-white/10 rounded-full relative p-0.5 cursor-pointer" onClick={() => setShowHeatmap(!showHeatmap)}>
-                    <div className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${showHeatmap ? 'translate-x-5 bg-cyan-tactical' : 'translate-x-0 bg-text-dim'}`} />
-                  </div>
-                  <span className="text-[8px] font-black tracking-widest text-white/60 mr-2 uppercase">Heatmap</span>
+            <AtmosphereMetrics 
+              noise={86.3}
+              aqi="Moderate"
+              wifi="Optimal"
+            />
+
+            <AttendeeFocus attendeeOnly proximities={proximities} onAction={handleAction} />
+          </div>
+        )}
+
+        {mobileTab === "MAP" && (
+          <div className="h-[calc(100vh-112px)] relative animate-in fade-in duration-500 overflow-hidden">
+             <VibeMap venueData={venueData} path={path} sosAlerts={sosAlerts} attendeeMode={true} userPos={userPos} incentives={incentives} showHeatmap={showHeatmap} />
+             {/* Floating Heatmap Toggle for Mobile */}
+             <div className="absolute top-6 left-6">
+              <div className="flex items-center gap-3 bg-black/60 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-xl">
+                <div className="w-10 h-5 bg-white/10 rounded-full relative p-0.5 cursor-pointer" onClick={() => setShowHeatmap(!showHeatmap)}>
+                  <div className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${showHeatmap ? 'translate-x-5 bg-cyan-tactical' : 'translate-x-0 bg-text-dim'}`} />
                 </div>
-               </div>
-            </div>
-          )}
-
-          {mobileTab === "FIND" && (
-            <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-2xl font-black text-white px-2">Find Amenities</h2>
-              <AttendeeFocus onAction={handleAction} proximities={proximities} focused={true} />
-            </div>
-          )}
-
-          {mobileTab === "ALERTS" && (
-            <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-2xl font-black text-white px-2">Safety & Alerts</h2>
-              <AgentLog logs={agentLogs.slice(0, 5)} />
-              <div className="p-6 glass-tactical rounded-3xl border-l-4 border-accent-gold">
-                <p className="text-xs font-bold text-accent-gold mb-1">Fan Notice</p>
-                <p className="text-[11px] text-white/70 leading-relaxed">Concourse B is seeing high traffic. AI Suggests using North Exit for faster departure.</p>
+                <span className="text-[8px] font-black tracking-widest text-white/60 mr-2 uppercase">Heatmap</span>
               </div>
-            </div>
-          )}
-        </main>
+             </div>
+          </div>
+        )}
 
-        {/* Bottom Tab Bar */}
-        <nav className="bottom-tabs">
+        {mobileTab === "FIND" && (
+          <div className="py-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-2xl font-black text-white px-2">Find Amenities</h2>
+            <AttendeeFocus onAction={handleAction} proximities={proximities} focused={true} />
+          </div>
+        )}
+
+        {mobileTab === "ALERTS" && (
+          <div className="py-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-2xl font-black text-white px-2">Safety & Alerts</h2>
+            <AgentLog logs={agentLogs.slice(0, 5)} />
+            <div className="p-6 glass-tactical rounded-3xl border-l-4 border-accent-gold">
+              <p className="text-xs font-bold text-accent-gold mb-1">Fan Notice</p>
+              <p className="text-[11px] text-white/70 leading-relaxed">Concourse B is seeing high traffic. AI Suggests using North Exit for faster departure.</p>
+            </div>
+          </div>
+        )}
+        </div>
+      </div>
+
+      {/* Bottom Tab Bar */}
+      <nav className="bottom-tabs">
+        <div className="attendee-shell-inner bottom-tabs-inner">
           <MobileTabItem icon="🏠" label="Home" active={mobileTab === "HOME"} onClick={() => setMobileTab("HOME")} />
           <MobileTabItem icon="🗺️" label="Map" active={mobileTab === "MAP"} onClick={() => setMobileTab("MAP")} />
           <MobileTabItem icon="🔍" label="Find" active={mobileTab === "FIND"} onClick={() => setMobileTab("FIND")} />
           <MobileTabItem icon="🔔" label="Alerts" active={mobileTab === "ALERTS"} onClick={() => setMobileTab("ALERTS")} />
-        </nav>
-      </div>
+        </div>
+      </nav>
 
+      {/* AI Insight Overlay */}
       <AIInsightDrawer isOpen={isInsightOpen} onClose={() => setIsInsightOpen(false)} />
       
-      {/* Global AI FAB Trigger */}
+      {/* AI FAB Trigger */}
       <button 
         onClick={() => setIsInsightOpen(true)}
         className="fixed bottom-[80px] right-4 z-[500] fab-ai"
+        style={{ left: 'auto' }}
         title="AI Insights available"
       >
         <span className="text-2xl">✦</span>
@@ -375,21 +352,6 @@ function MobileTabItem({ icon, label, active, onClick }) {
   );
 }
 
-
-function SidebarIcon({ icon, label, active, onClick }) {
-  return (
-    <div 
-      className={`sidebar-icon-wrap ${active ? 'active' : ''}`}
-      onClick={onClick}
-    >
-      {active && <div className="sidebar-icon-active-bar" />}
-      <div className="text-xl flex-shrink-0 w-6 flex justify-center">
-        {icon}
-      </div>
-      <span className="sidebar-label">{label}</span>
-    </div>
-  );
-}
 
 function PredictiveChart({ label, data }) {
   const max = Math.max(...data, 100);
@@ -449,9 +411,10 @@ function MetricBoxSmall({ label, value, color }) {
 }
 
 function ActionableAlert({ title, detail, time, status }) {
-  const stripeColor = status === "critical" ? "var(--red-tactical)" : "var(--amber-tactical)";
+  const isCritical = status === "critical";
+  const stripeColor = isCritical ? "#EF4444" : "var(--amber-tactical)";
   return (
-    <div className="alert-stripe" style={{ borderLeftColor: stripeColor }}>
+    <div className="alert-stripe" style={{ borderLeftColor: stripeColor, borderLeftWidth: "3px" }}>
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div className="space-y-1">
@@ -461,10 +424,13 @@ function ActionableAlert({ title, detail, time, status }) {
           <span className="text-[8px] font-data text-text-dim/60">{time}</span>
         </div>
         <div className="flex gap-2 mt-4">
-          <button className="flex-1 py-1.5 text-[10px] font-bold bg-white/5 border border-white/5 text-white hover:bg-white/10 rounded transition-all font-heading">
+          <button
+            className="flex-1 py-1.5 text-[10px] font-bold rounded transition-all font-heading"
+            style={{ background: "#EF4444", color: "#fff" }}
+          >
             Resolve
           </button>
-          <button className="flex-1 py-1.5 text-[10px] font-bold border border-white/5 text-text-dim hover:text-white rounded transition-all font-heading">
+          <button className="flex-1 py-1.5 text-[10px] font-bold border border-white/30 bg-transparent text-text-dim hover:text-white rounded transition-all font-heading">
             Ignore
           </button>
         </div>
@@ -511,6 +477,17 @@ function NavItem({ icon, label, active, count }) {
         )}
       </div>
       <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+    </div>
+  );
+}
+
+function OverrideToast({ visible }) {
+  if (!visible) return null;
+  return (
+    <div className="fixed top-6 right-6 z-[800] px-4 py-3 rounded-xl bg-[#111827] border border-red-500/40 text-white shadow-[0_12px_30px_rgba(0,0,0,0.45)]">
+      <p className="text-[11px] font-bold tracking-wide">
+        Override initiated — manual control active
+      </p>
     </div>
   );
 }

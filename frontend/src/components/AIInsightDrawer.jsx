@@ -7,7 +7,7 @@ import React from 'react';
 export default function AIInsightDrawer({ isOpen, onClose }) {
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-[600] flex justify-center px-0 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${
+      className={`absolute bottom-0 left-0 right-0 z-[600] flex justify-center px-0 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${
         isOpen ? 'translate-y-0' : 'translate-y-full'
       }`}
     >

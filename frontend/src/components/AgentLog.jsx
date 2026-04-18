@@ -1,40 +1,58 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-/**
- * AgentLog — Transparent glass overlay terminal showing agent "thoughts".
- */
-function agentColor(agent) {
-  switch (agent) {
-    case 'FLOW_AGENT': return '#00D4FF';
-    case 'SYNC_AGENT': return '#9C88FF';
-    case 'GUARDIAN':   return '#FF4757';
-    default:           return '#64748b';
-  }
-}
-
-function agentInitials(agent) {
-  switch (agent) {
-    case 'FLOW_AGENT': return 'FA';
-    case 'SYNC_AGENT': return 'SA';
-    case 'GUARDIAN':   return 'GD';
-    default:           return 'AI';
-  }
-}
-
-function levelStyle(level) {
-  switch (level) {
-    case 'critical': return { bg: 'rgba(255,71,87,0.06)', border: 'rgba(255,71,87,0.25)' };
-    case 'warning':  return { bg: 'rgba(255, 165, 2, 0.04)', border: 'rgba(255, 165, 2, 0.2)' };
-    default:         return { bg: 'transparent', border: 'transparent' };
-  }
-}
+const STREAM_MESSAGES = [
+  {
+    id: "m1",
+    agent: "Guardian",
+    initials: "GB",
+    avatar: "#10B981",
+    timestamp: "09:31",
+    text: "SECTORS CLEAR. Biometric scanning nominal.",
+  },
+  {
+    id: "m2",
+    agent: "Sync Agent",
+    initials: "SA",
+    avatar: "#3B82F6",
+    timestamp: "17:23",
+    text: "Gate S2 crowd density at 78%. Deploying voucher IB_295.",
+  },
+  {
+    id: "m3",
+    agent: "Flow Agent",
+    initials: "FA",
+    avatar: "#F59E0B",
+    timestamp: "17:25",
+    text: "THERMAL ANOMALY near North Stand. Rerouting flow via East corridor.",
+  },
+  {
+    id: "m4",
+    agent: "Flow Agent",
+    initials: "FA",
+    avatar: "#F59E0B",
+    timestamp: "17:26",
+    text: "BOTTLENECK cleared at Gate N1. Dynamic path active.",
+  },
+];
 
 export default function AgentLog({ logs = [] }) {
   const scrollRef = useRef(null);
+  const [visibleCount, setVisibleCount] = useState(0);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
-  }, [logs]);
+    setVisibleCount(0);
+    const timers = STREAM_MESSAGES.map((_, index) =>
+      setTimeout(() => setVisibleCount((prev) => Math.max(prev, index + 1)), index * 500),
+    );
+
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [visibleCount]);
 
   return (
     <div className="flex flex-col rounded-2xl overflow-hidden h-full bg-[#1C2333]/30 border border-white/5">
@@ -51,43 +69,29 @@ export default function AgentLog({ logs = [] }) {
         className="flex-1 overflow-y-auto px-6 py-4 space-y-6 font-data"
         style={{ maxHeight: '500px' }}
       >
-        {logs.length === 0 ? (
+        {visibleCount === 0 ? (
           <div className="text-center py-12 flex flex-col items-center gap-4">
             <div className="w-6 h-6 border-2 border-white/10 border-t-cyan-tactical rounded-full animate-spin" />
-            <p className="text-text-dim text-[10px] tracking-[0.1em] font-heading">Establishing secure link...</p>
+            <p className="text-text-dim text-[10px] tracking-[0.1em] font-heading">Streaming agent telemetry...</p>
           </div>
         ) : (
-          logs.map((log, i) => {
-            const time = new Date(log.timestamp).toLocaleTimeString('en-US', {
-              hour12: false, hour: '2-digit', minute: '2-digit'
-            });
-            const color = agentColor(log.agent);
-            const agentName = log.agent === 'FLOW_AGENT' ? 'Flow Agent' : 
-                             log.agent === 'SYNC_AGENT' ? 'Sync Agent' : 
-                             log.agent === 'GUARDIAN' ? 'Guardian' : 'Core AI';
-
+          STREAM_MESSAGES.slice(0, visibleCount).map((log) => {
             return (
-              <div key={`${log.timestamp}-${i}`} className="flex items-start gap-4 group">
-                <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold shadow-2xl transition-transform hover:scale-110" style={{ backgroundColor: color }}>
-                  <span className="text-black/80">{agentInitials(log.agent)}</span>
+              <div key={log.id} className="flex items-start gap-4 group">
+                <div
+                  className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold shadow-2xl transition-transform hover:scale-110"
+                  style={{ backgroundColor: log.avatar }}
+                >
+                  <span className="text-black/80">{log.initials}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1.5">
-                    <span className="font-bold text-xs font-heading text-white/90">{agentName}</span>
-                    <span className="text-[9px] text-text-dim/50 font-data">{time}</span>
+                  <div className="flex items-center justify-between gap-3 mb-1.5">
+                    <span className="font-bold text-xs font-heading text-white/90">{log.agent}</span>
+                    <span className="text-[9px] text-text-dim/50 font-data">{log.timestamp}</span>
                   </div>
                   <div className="p-3 rounded-2xl rounded-tl-none bg-[#1C2333] border border-white/5 shadow-sm inline-block max-w-full">
-                    <p className={`text-[11px] leading-relaxed font-medium ${
-                      log.level === 'critical' ? 'text-red-tactical' :
-                      log.level === 'warning' ? 'text-amber-tactical' :
-                      'text-white/80'
-                    }`}>
-                      {log.message.startsWith('>>') ? (
-                        <>
-                          <span className="text-cyan-tactical font-black mr-1 leading-none">&raquo;</span>
-                          {log.message.slice(2)}
-                        </>
-                      ) : log.message}
+                    <p className="text-[11px] leading-relaxed font-medium text-white/80">
+                      {log.text}
                     </p>
                   </div>
                 </div>

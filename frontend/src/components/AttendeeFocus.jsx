@@ -7,14 +7,21 @@ import React from 'react';
 
 export default function AttendeeFocus({ onAction, proximities, attendeeOnly, focused }) {
   const p = proximities || {};
+  const washroomWait = p.WASHROOM?.wait || "2 min";
+  const hydrationWait = p.HYDRATION?.wait || "No wait";
+  const foodWait = p.FOOD?.wait || "5 min";
 
   return (
     <div className="space-y-6">
       {/* Hero Header for Home Tab */}
       {!focused && (
         <div className="flex flex-col gap-1 px-2">
-           <h3 className="text-[11px] font-black tracking-widest text-[#F59E0B] uppercase font-heading">Venue Insights</h3>
-           <p className="text-2xl font-black text-white tracking-tight">Sentinel Command</p>
+           {window.innerHeight >= 700 && (
+             <h3 className="text-[11px] font-black tracking-widest text-[#F59E0B] uppercase font-heading">Venue Insights</h3>
+           )}
+           <p className={`font-black text-white tracking-tight ${window.innerHeight < 700 ? 'text-[22px]' : 'text-2xl'}`}>
+             Sentinel Command
+           </p>
         </div>
       )}
 
@@ -30,27 +37,84 @@ export default function AttendeeFocus({ onAction, proximities, attendeeOnly, foc
           actionText="Start Navigation"
         />
 
-        <FocusCard 
-          type="POI"
-          icon="🚻" 
-          title="Washroom" 
-          sub={p.WASHROOM?.label || "Hub 08"}
-          status="2m wait"
-          metrics={{ primary: `${p.WASHROOM?.meters || 0}m`, secondary: `${p.WASHROOM?.minutes || 0} min` }}
-          onClick={() => onAction('POI_WASHROOM')}
-          theme="blue"
-        />
+        {!focused && (
+          <NearbyCard
+            washroom={{ label: p.WASHROOM?.label || "HUB08", meters: p.WASHROOM?.meters ?? 87, wait: washroomWait }}
+            hydration={{ label: p.HYDRATION?.label || "Water Station", meters: p.HYDRATION?.meters ?? 65, wait: hydrationWait }}
+          />
+        )}
 
         <FocusCard 
           type="POI"
-          icon="💧" 
-          title="Hydration Hub" 
-          sub={p.HYDRATION?.label || "Water Station"}
-          status="No wait"
-          metrics={{ primary: `${p.HYDRATION?.meters || 0}m`, secondary: `Clear` }}
-          onClick={() => onAction('POI_HYDRATION')}
-          theme="cyan"
+          icon="🍔"
+          title="Food Court"
+          sub={p.FOOD?.label || "Food Court"}
+          status={foodWait}
+          metrics={{ primary: `${p.FOOD?.meters ?? 120}m`, secondary: foodWait }}
+          onClick={() => onAction('POI_FOOD')}
+          theme="blue"
         />
+
+        {focused && (
+          <>
+            <FocusCard 
+              type="POI"
+              icon="🚻" 
+              title="Washroom" 
+              sub={p.WASHROOM?.label || "HUB08"}
+              status={washroomWait}
+              metrics={{ primary: `${p.WASHROOM?.meters ?? 87}m`, secondary: washroomWait }}
+              onClick={() => onAction('POI_WASHROOM')}
+              theme="blue"
+            />
+
+            <FocusCard 
+              type="POI"
+              icon="💧" 
+              title="Hydration Hub" 
+              sub={p.HYDRATION?.label || "Water Station"}
+              status={hydrationWait}
+              metrics={{ primary: `${p.HYDRATION?.meters ?? 65}m`, secondary: hydrationWait }}
+              onClick={() => onAction('POI_HYDRATION')}
+              theme="cyan"
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NearbyCard({ washroom, hydration }) {
+  return (
+    <div className="bg-[#111827] border border-white/5 p-6 rounded-[24px] space-y-4 shadow-xl">
+      <div className="flex items-center justify-between">
+        <h4 className="text-base font-black text-white">Nearby</h4>
+        <span className="text-[9px] font-black tracking-[0.2em] uppercase text-text-secondary">
+          Quick Access
+        </span>
+      </div>
+      <div className="space-y-3">
+        <NearbyRow icon="🚻" name="Washroom" label={washroom.label} distance={`${washroom.meters}m`} wait={washroom.wait} />
+        <NearbyRow icon="💧" name="Hydration Hub" label={hydration.label} distance={`${hydration.meters}m`} wait={hydration.wait} />
+      </div>
+    </div>
+  );
+}
+
+function NearbyRow({ icon, name, label, distance, wait }) {
+  return (
+    <div className="flex items-center justify-between bg-black/20 border border-white/5 rounded-xl px-3 py-2.5">
+      <div className="flex items-center gap-3">
+        <span className="text-lg">{icon}</span>
+        <div>
+          <p className="text-xs font-black text-white leading-none">{name}</p>
+          <p className="text-[10px] text-text-secondary uppercase tracking-wide mt-1">{label}</p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-sm font-black text-white font-data">{distance}</p>
+        <p className="text-[10px] text-[#F59E0B] font-bold">{wait}</p>
       </div>
     </div>
   );

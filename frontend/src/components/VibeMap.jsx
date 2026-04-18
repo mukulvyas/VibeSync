@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 /**
  * VibeMap — High-Fidelity Tactical 3D Digital Twin
@@ -11,32 +11,19 @@ import { useMemo, useEffect, useState } from "react";
  * - Neon Energy Ribbon Pathfinding
  */
 
-const SECTIONS = [
-  {
-    id: "NORTH",
-    label: "NORTH_STAND",
-    color: "rgba(0, 210, 255, 0.1)",
-    rowCount: 6,
-  },
-  {
-    id: "SOUTH",
-    label: "SOUTH_TERRACE",
-    color: "rgba(0, 210, 255, 0.1)",
-    rowCount: 6,
-  },
-  {
-    id: "WEST",
-    label: "WEST_AXIS",
-    color: "rgba(0, 210, 255, 0.1)",
-    rowCount: 8,
-  },
-  {
-    id: "EAST",
-    label: "EAST_AXIS",
-    color: "rgba(0, 210, 255, 0.1)",
-    rowCount: 8,
-  },
-];
+const STAND_META = {
+  NORTH: { name: "North Stand", gate: "N1", label: "NORTH STAND" },
+  EAST: { name: "East VIP", gate: "E2", label: "EAST VIP" },
+  WEST: { name: "West Stand", gate: "W1", label: "WEST STAND" },
+  SOUTH: { name: "South Fans", gate: "S2", label: "SOUTH FANS" },
+};
+
+const HEATMAP_COLORS = {
+  NORTH: "rgba(239, 68, 68, 0.5)",
+  EAST: "rgba(245, 158, 11, 0.35)",
+  WEST: "rgba(245, 158, 11, 0.4)",
+  SOUTH: "rgba(59, 130, 246, 0.3)",
+};
 
 export default function VibeMap({
   venueData,
@@ -48,11 +35,10 @@ export default function VibeMap({
   incentives = [],
   showHeatmap = true,
 }) {
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [hoveredStand, setHoveredStand] = useState(null);
+  const containerRef = useRef(null);
+  const [hoveredStand, setHoveredStand] = useState("");
   const [tooltip, setTooltip] = useState(null);
 
-  // Compute section stats
   const sectionStats = useMemo(() => {
     if (!venueData) return {};
     const stats = {};
@@ -74,92 +60,61 @@ export default function VibeMap({
     Object.keys(stats).forEach((stand) => {
       const { total, occupied } = stats[stand];
       const capacity = Math.round((occupied / total) * 100);
-      const wait = Math.max(0, Math.round(capacity / 10 - 1)); // rough estimate
-      stats[stand] = { capacity, wait };
+      stats[stand] = { capacity };
     });
     return stats;
   }, [venueData]);
 
-  // Generate 3D Bowl Data & Heatmap Points
-  const { standColors, attendeeDots, heatmapPoints } = useMemo(() => {
-    const s = {
-      NORTH: "#1e293b",
-      SOUTH: "#1e293b",
-      EAST: "#1e293b",
-      WEST: "#1e293b",
-    };
+  const attendeeDots = useMemo(() => {
     const dots = [];
-    const hPoints = [];
-    if (!venueData)
-      return { standColors: s, attendeeDots: [], heatmapPoints: [] };
+    if (!venueData) return dots;
 
     venueData.forEach((row, ri) => {
       row.forEach((cell, ci) => {
         if (cell.cell_type !== "seat") return;
 
-        let stand = "";
-        if (ri <= 2) stand = "NORTH";
-        else if (ri >= 7) stand = "SOUTH";
-        else if (ci <= 2) stand = "WEST";
-        else if (ci >= 7) stand = "EAST";
-
-        if (stand) {
-          // Warm Attendee Gradients
-          if (attendeeMode) {
-            if (cell.density > 0.6) s[stand] = "rgba(245, 158, 11, 0.4)";
-            if (cell.density > 0.85) s[stand] = "rgba(239, 68, 68, 0.4)";
-          } else {
-            if (cell.density > 0.85) s[stand] = "rgba(255, 71, 87, 0.2)";
-            else if (cell.density > 0.6) s[stand] = "rgba(255, 165, 2, 0.15)";
-          }
-
-          // Create base for heatmap bloom
-          if (cell.density > 0.2) {
-            hPoints.push({
-              id: `heat-${ri}-${ci}`,
-              cx: ci * 100 + 50,
-              cy: ri * 100 + 50,
-              radius: 40 + cell.density * 60,
-              opacity: 0.1 + cell.density * 0.4,
-              color:
-                cell.density > 0.8
-                  ? attendeeMode ? "#ef4444" : "var(--red-tactical)"
-                  : cell.density > 0.5
-                    ? attendeeMode ? "#f59e0b" : "var(--amber-tactical)"
-                    : attendeeMode ? "#3b82f6" : "var(--cyan-tactical)",
-            });
-          }
-
-          const count = Math.floor(cell.density * 8);
-          for (let i = 0; i < count; i++) {
-            dots.push({
-              id: `fan-${ri}-${ci}-${i}`,
-              cx: ci * 100 + 50 + (Math.random() * 40 - 20),
-              cy: ri * 100 + 50 + (Math.random() * 40 - 20),
-              r: 1.2 + Math.random() * 1.5,
-              opacity: 0.5 + cell.density * 0.5,
-              dur: 1.5 + Math.random() * 1.5,
-            });
-          }
+        const count = Math.floor(cell.density * 6);
+        for (let i = 0; i < count; i++) {
+          dots.push({
+            id: `fan-${ri}-${ci}-${i}`,
+            cx: ci * 100 + 50 + (Math.random() * 30 - 15),
+            cy: ri * 100 + 50 + (Math.random() * 30 - 15),
+            r: 1 + Math.random() * 1.2,
+          });
         }
       });
     });
-    return { standColors: s, attendeeDots: dots, heatmapPoints: hPoints };
-  }, [venueData, attendeeMode]);
+    return dots;
+  }, [venueData]);
 
   const pathPoints = useMemo(() => {
     if (!path) return "";
     return path.map((p) => `${p.col * 100 + 50},${p.row * 100 + 50}`).join(" ");
   }, [path]);
 
-  // Map "YOU" marker to grid coordinates
-  const pixelPos = useMemo(() => {
-    if (!userPos) return { x: 500, y: 700 };
-    return { x: userPos.col * 100 + 50, y: userPos.row * 100 + 50 };
-  }, [userPos]);
+  const youMarker = useMemo(() => ({ x: 500, y: 760 }), []);
+
+  const showStandTooltip = (stand, event) => {
+    const bounds = containerRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const stat = sectionStats[stand] || { capacity: 0 };
+    const meta = STAND_META[stand];
+    setHoveredStand(stand);
+    setTooltip({
+      stand,
+      name: meta.name,
+      gate: meta.gate,
+      capacity: stat.capacity,
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top - 12,
+    });
+  };
 
   return (
-    <div className="tactical-panel glass-tactical relative map-blueprint-bg min-h-[600px] flex items-center justify-center group overflow-hidden rounded-xl">
+    <div
+      ref={containerRef}
+      className="tactical-panel glass-tactical relative map-blueprint-bg min-h-[600px] flex items-center justify-center group overflow-hidden rounded-xl"
+    >
       <div className="scanner-effect opacity-50" />
 
       <svg
@@ -167,16 +122,9 @@ export default function VibeMap({
         className="w-full h-full max-w-[850px] drop-shadow-[0_0_100px_rgba(0,0,0,0.8)] transition-transform duration-700"
       >
         <defs>
-          <radialGradient
-            id="bowlInnerGlow"
-            cx="50%"
-            cy="50%"
-            r="50%"
-            fx="50%"
-            fy="50%"
-          >
-            <stop offset="0%" stopColor="rgba(0, 210, 255, 0.1)" />
-            <stop offset="100%" stopColor="rgba(0, 210, 255, 0)" />
+          <radialGradient id="fieldGradient" cx="50%" cy="50%" r="65%">
+            <stop offset="0%" stopColor="#2b6a43" />
+            <stop offset="100%" stopColor="#1a4a2e" />
           </radialGradient>
 
           <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -184,284 +132,127 @@ export default function VibeMap({
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
 
-          {heatmapPoints.map((hp) => (
-            <radialGradient id={`grad-${hp.id}`} key={hp.id}>
-              <stop offset="0%" stopColor={hp.color} stopOpacity={hp.opacity} />
-              <stop offset="100%" stopColor={hp.color} stopOpacity="0" />
+          {Object.entries(HEATMAP_COLORS).map(([stand, color]) => (
+            <radialGradient id={`heat-${stand}`} key={stand}>
+              <stop offset="0%" stopColor={color} stopOpacity="1" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
             </radialGradient>
           ))}
+
+          <linearGradient id="pitchGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#c9a36e" />
+            <stop offset="100%" stopColor="#a98254" />
+          </linearGradient>
         </defs>
 
-        {/* Stadium Floor Reflection */}
-        <circle
+        {/* Cricket field */}
+        <ellipse
           cx="500"
           cy="500"
-          r="450"
-          fill="url(#bowlInnerGlow)"
-          opacity="0.5"
+          rx="265"
+          ry="205"
+          fill="url(#fieldGradient)"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth="2"
+        />
+        <ellipse
+          cx="500"
+          cy="500"
+          rx="155"
+          ry="120"
+          fill="none"
+          stroke="rgba(255,255,255,0.25)"
+          strokeDasharray="7 7"
+          strokeWidth="2"
+        />
+        <rect
+          x="490"
+          y="430"
+          width="20"
+          height="140"
+          rx="3"
+          fill="url(#pitchGradient)"
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth="1.5"
         />
 
-        {/* ── HEATMAP BLOOMS ── */}
+        {/* Curved stand shells */}
+        <path d="M 250 220 A 280 220 0 0 1 750 220 L 700 300 A 210 150 0 0 0 300 300 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+        <path d="M 250 780 A 280 220 0 0 0 750 780 L 700 700 A 210 150 0 0 1 300 700 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+        <path d="M 210 300 A 240 200 0 0 0 210 700 L 300 660 A 170 130 0 0 1 300 340 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+        <path d="M 790 300 A 240 200 0 0 1 790 700 L 700 660 A 170 130 0 0 0 700 340 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+
+        {/* Stand interactive hit regions */}
+        <g
+          className="cursor-pointer transition-all duration-300"
+          onMouseEnter={(e) => showStandTooltip("NORTH", e)}
+          onMouseMove={(e) => showStandTooltip("NORTH", e)}
+          onMouseLeave={() => {
+            setHoveredStand("");
+            setTooltip(null);
+          }}
+          onClick={() => onCellClick?.("NORTH")}
+          style={{ opacity: hoveredStand && hoveredStand !== "NORTH" ? 0.85 : 1 }}
+        >
+          <path d="M 250 220 A 280 220 0 0 1 750 220 L 700 300 A 210 150 0 0 0 300 300 Z" fill="rgba(59,130,246,0.06)" />
+          <Label x={500} y={248} text={STAND_META.NORTH.label} />
+        </g>
+        <g
+          className="cursor-pointer transition-all duration-300"
+          onMouseEnter={(e) => showStandTooltip("SOUTH", e)}
+          onMouseMove={(e) => showStandTooltip("SOUTH", e)}
+          onMouseLeave={() => {
+            setHoveredStand("");
+            setTooltip(null);
+          }}
+          onClick={() => onCellClick?.("SOUTH")}
+          style={{ opacity: hoveredStand && hoveredStand !== "SOUTH" ? 0.85 : 1 }}
+        >
+          <path d="M 250 780 A 280 220 0 0 0 750 780 L 700 700 A 210 150 0 0 1 300 700 Z" fill="rgba(59,130,246,0.06)" />
+          <Label x={500} y={754} text={STAND_META.SOUTH.label} />
+        </g>
+        <g
+          className="cursor-pointer transition-all duration-300"
+          onMouseEnter={(e) => showStandTooltip("WEST", e)}
+          onMouseMove={(e) => showStandTooltip("WEST", e)}
+          onMouseLeave={() => {
+            setHoveredStand("");
+            setTooltip(null);
+          }}
+          onClick={() => onCellClick?.("WEST")}
+          style={{ opacity: hoveredStand && hoveredStand !== "WEST" ? 0.85 : 1 }}
+        >
+          <path d="M 210 300 A 240 200 0 0 0 210 700 L 300 660 A 170 130 0 0 1 300 340 Z" fill="rgba(59,130,246,0.06)" />
+          <Label x={252} y={500} text={STAND_META.WEST.label} rotate={-90} />
+        </g>
+        <g
+          className="cursor-pointer transition-all duration-300"
+          onMouseEnter={(e) => showStandTooltip("EAST", e)}
+          onMouseMove={(e) => showStandTooltip("EAST", e)}
+          onMouseLeave={() => {
+            setHoveredStand("");
+            setTooltip(null);
+          }}
+          onClick={() => onCellClick?.("EAST")}
+          style={{ opacity: hoveredStand && hoveredStand !== "EAST" ? 0.85 : 1 }}
+        >
+          <path d="M 790 300 A 240 200 0 0 1 790 700 L 700 660 A 170 130 0 0 0 700 340 Z" fill="rgba(59,130,246,0.06)" />
+          <Label x={748} y={500} text={STAND_META.EAST.label} rotate={90} />
+        </g>
+
+        {/* Heatmap blobs by stand */}
         {showHeatmap && (
-          <g className="heatmap-layer mix-blend-screen" opacity="0.6">
-            {heatmapPoints.map((hp) => (
-              <circle
-                key={hp.id}
-                cx={hp.cx}
-                cy={hp.cy}
-                r={hp.radius}
-                fill={`url(#grad-${hp.id})`}
-                className="animate-pulse"
-              />
-            ))}
+          <g className="heatmap-layer mix-blend-screen" opacity={attendeeMode ? 0.85 : 0.92}>
+            <ellipse cx="500" cy="260" rx="230" ry="90" fill="url(#heat-NORTH)" />
+            <ellipse cx="770" cy="500" rx="85" ry="170" fill="url(#heat-EAST)" />
+            <ellipse cx="230" cy="500" rx="95" ry="170" fill="url(#heat-WEST)" />
+            {attendeeMode ? (
+              <ellipse cx="500" cy="740" rx="240" ry="85" fill="url(#heat-SOUTH)" />
+            ) : (
+              <ellipse cx="500" cy="740" rx="240" ry="85" fill="rgba(245, 158, 11, 0.26)" />
+            )}
           </g>
         )}
-
-        {/* ── 3D BOWL GEOMETRY ── */}
-
-        {/* North Stand */}
-        <g
-          onClick={() => onCellClick?.("NORTH")}
-          onMouseEnter={(e) => {
-            setHoveredStand("NORTH");
-            const rect = e.currentTarget.getBoundingClientRect();
-            setTooltip({
-              stand: "NORTH",
-              label: "SEC-NORTH [COMMAND]",
-              x: rect.left + rect.width / 2,
-              y: rect.top - 10,
-              ...sectionStats.NORTH,
-            });
-          }}
-          onMouseLeave={() => {
-            setHoveredStand(null);
-            setTooltip(null);
-          }}
-          className="cursor-pointer transition-all duration-300"
-          style={{
-            transform:
-              hoveredStand === "NORTH"
-                ? "translateY(-5px) scale(1.01)"
-                : "none",
-            transformOrigin: "center 130px",
-          }}
-        >
-          <path
-            d="M 250,150 L 750,150 L 720,100 L 280,100 Z"
-            fill="rgba(30, 41, 59, 0.9)"
-            stroke="rgba(0,210,255,0.3)"
-          />
-          <path
-            d="M 300,250 L 700,250 L 750,150 L 250,150 Z"
-            fill={standColors.NORTH}
-            className="transition-colors duration-1000"
-          />
-          {[190, 210, 230].map((h) => (
-            <line
-              key={h}
-              x1={300 + (h - 150) / 2}
-              y1={h}
-              x2={700 - (h - 150) / 2}
-              y2={h}
-              stroke="rgba(0,210,255,0.15)"
-              strokeWidth="0.5"
-            />
-          ))}
-          <Label x={500} y={130} text="SEC-NORTH [COMMAND]" />
-        </g>
-
-        {/* South Stand */}
-        <g
-          onClick={() => onCellClick?.("SOUTH")}
-          onMouseEnter={(e) => {
-            setHoveredStand("SOUTH");
-            const rect = e.currentTarget.getBoundingClientRect();
-            setTooltip({
-              stand: "SOUTH",
-              label: "SEC-SOUTH [FANS]",
-              x: rect.left + rect.width / 2,
-              y: rect.bottom + 10,
-              ...sectionStats.SOUTH,
-            });
-          }}
-          onMouseLeave={() => {
-            setHoveredStand(null);
-            setTooltip(null);
-          }}
-          className="cursor-pointer transition-all duration-300"
-          style={{
-            transform:
-              hoveredStand === "SOUTH" ? "translateY(5px) scale(1.01)" : "none",
-            transformOrigin: "center 875px",
-          }}
-        >
-          <path
-            d="M 250,850 L 750,850 L 720,900 L 280,900 Z"
-            fill="rgba(30, 41, 59, 0.9)"
-            stroke="rgba(0,210,255,0.3)"
-          />
-          <path
-            d="M 300,750 L 700,750 L 750,850 L 250,850 Z"
-            fill={standColors.SOUTH}
-            className="transition-colors duration-1000"
-          />
-          {[770, 790, 810, 830].map((h) => (
-            <line
-              key={h}
-              x1={300 - (850 - h) / 2}
-              y1={h}
-              x2={700 + (850 - h) / 2}
-              y2={h}
-              stroke="rgba(0,210,255,0.15)"
-              strokeWidth="0.5"
-            />
-          ))}
-          <Label x={500} y={875} text="SEC-SOUTH [FANS]" />
-        </g>
-
-        {/* West Stand */}
-        <g
-          onClick={() => onCellClick?.("WEST")}
-          onMouseEnter={(e) => {
-            setHoveredStand("WEST");
-            const rect = e.currentTarget.getBoundingClientRect();
-            setTooltip({
-              stand: "WEST",
-              label: "WEST_AXIS",
-              x: rect.left - 10,
-              y: rect.top + rect.height / 2,
-              ...sectionStats.WEST,
-            });
-          }}
-          onMouseLeave={() => {
-            setHoveredStand(null);
-            setTooltip(null);
-          }}
-          className="cursor-pointer transition-all duration-300"
-          style={{
-            transform:
-              hoveredStand === "WEST" ? "translateX(-5px) scale(1.01)" : "none",
-            transformOrigin: "80px center",
-          }}
-        >
-          <path
-            d="M 100,250 L 100,750 L 50,720 L 50,280 Z"
-            fill="rgba(30, 41, 59, 0.9)"
-            stroke="rgba(0,210,255,0.3)"
-          />
-          <path
-            d="M 250,300 L 250,700 L 100,750 L 100,250 Z"
-            fill={standColors.WEST}
-            className="transition-colors duration-1000"
-          />
-          {[140, 180, 220].map((w) => (
-            <line
-              key={w}
-              x1={w}
-              y1={300 - (250 - w) / 2}
-              x2={w}
-              y2={700 + (250 - w) / 2}
-              stroke="rgba(0,210,255,0.15)"
-              strokeWidth="0.5"
-            />
-          ))}
-          <Label x={80} y={500} text="WEST_AXIS" rotate={-90} />
-        </g>
-
-        {/* East Stand */}
-        <g
-          onClick={() => onCellClick?.("EAST")}
-          onMouseEnter={(e) => {
-            setHoveredStand("EAST");
-            const rect = e.currentTarget.getBoundingClientRect();
-            setTooltip({
-              stand: "EAST",
-              label: "EAST_VIP",
-              x: rect.right + 10,
-              y: rect.top + rect.height / 2,
-              ...sectionStats.EAST,
-            });
-          }}
-          onMouseLeave={() => {
-            setHoveredStand(null);
-            setTooltip(null);
-          }}
-          className="cursor-pointer transition-all duration-300"
-          style={{
-            transform:
-              hoveredStand === "EAST" ? "translateX(5px) scale(1.01)" : "none",
-            transformOrigin: "920px center",
-          }}
-        >
-          <path
-            d="M 900,250 L 900,750 L 950,720 L 950,280 Z"
-            fill="rgba(30, 41, 59, 0.9)"
-            stroke="rgba(0,210,255,0.3)"
-          />
-          <path
-            d="M 750,300 L 750,700 L 900,750 L 900,250 Z"
-            fill={standColors.EAST}
-            className="transition-colors duration-1000"
-          />
-          {[780, 820, 860].map((w) => (
-            <line
-              key={w}
-              x1={w}
-              y1={300 + (w - 750) / 2}
-              x2={w}
-              y2={700 - (w - 750) / 2}
-              stroke="rgba(0,210,255,0.15)"
-              strokeWidth="0.5"
-            />
-          ))}
-          <Label x={920} y={500} text="EAST_VIP" rotate={90} />
-        </g>
-
-        {/* ── PITCH (The Centerpiece) ── */}
-        <g transform="translate(350, 350)" pointerEvents="none">
-          {/* Deep Teal Pitch */}
-          <rect
-            width="300"
-            height="300"
-            fill="#0D3B2E"
-            stroke="rgba(0, 210, 255, 0.2)"
-            strokeWidth="1"
-            rx="4"
-          />
-          
-          {/* Subtle Yard Line Markings */}
-          {[...Array(11)].map((_, i) => (
-            <line
-              key={i}
-              x1={i * 30}
-              y1="0"
-              x2={i * 30}
-              y2="300"
-              stroke="rgba(255, 255, 255, 0.05)"
-              strokeWidth="0.5"
-            />
-          ))}
-
-          {/* Center Circle & Line */}
-          <circle
-            cx="150"
-            cy="150"
-            r="40"
-            fill="none"
-            stroke="rgba(255, 255, 255, 0.1)"
-            strokeWidth="1"
-            strokeDasharray="5 5"
-          />
-          <line
-            x1="0"
-            y1="150"
-            x2="300"
-            y2="150"
-            stroke="rgba(255, 255, 255, 0.1)"
-            strokeWidth="1"
-            strokeDasharray="5 5"
-          />
-        </g>
 
         {/* ── ATTENDEES (STATIC MARKERS) ── */}
         {!showHeatmap && (
@@ -512,19 +303,19 @@ export default function VibeMap({
 
         {/* ── YOU Marker ── */}
         {attendeeMode && (
-          <g transform={`translate(${pixelPos.x}, ${pixelPos.y})`}>
+          <g transform={`translate(${youMarker.x}, ${youMarker.y})`}>
             {/* Outer Pulse */}
             <circle
-              r="24"
-              fill="rgba(0, 122, 255, 0.2)"
+              r="18"
+              fill="rgba(59,130,246,0.25)"
               className="animate-ping"
             />
             {/* Inner Glowing Dot */}
             <circle
-              r="10"
-              fill="#007aff"
+              r="8"
+              fill="#3b82f6"
               stroke="white"
-              strokeWidth="3"
+              strokeWidth="2"
               className="blue-dot-pulse shadow-2xl"
             />
             
@@ -565,17 +356,8 @@ export default function VibeMap({
             top: tooltip.y,
           }}
         >
-          <div className={`font-bold mb-2 pb-1 border-b border-white/10 ${attendeeMode ? 'text-lg' : 'text-xs uppercase tracking-widest text-white'}`}>
-            {attendeeMode ? tooltip.label.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()) : tooltip.label.replace('_', ' ')}
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className={`text-2xl font-black font-data ${attendeeMode && tooltip.capacity > 85 ? 'text-red-400' : attendeeMode ? 'text-[#F59E0B]' : 'text-cyan-tactical'}`}>
-              {tooltip.capacity}%
-            </span>
-            <span className="text-[10px] font-bold text-text-dim uppercase tracking-widest">{attendeeMode ? 'Full' : 'Cap'}</span>
-          </div>
-          <div className="text-[10px] text-text-dim mt-2 font-medium">
-             Est. wait: <span className="text-white font-bold font-data">{Math.round(tooltip.capacity / 10)} min</span>
+          <div className={`font-bold mb-2 pb-1 border-b border-white/10 ${attendeeMode ? 'text-sm' : 'text-xs uppercase tracking-widest text-white'}`}>
+            {tooltip.name} · {tooltip.capacity}% capacity · Gate: {tooltip.gate}
           </div>
         </div>
       )}
