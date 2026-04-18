@@ -403,7 +403,7 @@ time,
 }
 
 .mobile-status-bar {
-  height: 48px;
+  height: 52px;
   position: fixed;
   top: 0;
   left: 0;
@@ -422,22 +422,10 @@ time,
   padding: 0 16px;
 }
 
-.attendee-toggle-floating {
-  position: fixed;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 120;
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 20px;
-  padding: 4px 12px;
-}
-
 .mobile-content-scroller {
   flex: 1;
   width: 100%;
-  margin-top: 48px;
+  margin-top: 52px;
   margin-bottom: 64px;
   padding: 0 16px;
   overflow-y: auto;
@@ -473,10 +461,14 @@ time,
 }
 
 .segmented-control-mini {
-  width: 92px;
+  min-width: 100px;
+  width: 100px;
   padding: 0;
   gap: 2px;
-  background: transparent;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 20px;
+  padding: 2px;
   border-radius: 9999px;
 }
 

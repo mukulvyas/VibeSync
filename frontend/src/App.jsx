@@ -1,12 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useVenueData } from "./hooks/useVenueData";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useMatchSimulation } from "./hooks/useMatchSimulation.jsx";
 import VibeMap from "./components/VibeMap";
 import AttendeeFocus from "./components/AttendeeFocus";
 import AtmosphereMetrics from "./components/AtmosphereMetrics";
-import ZoneStatusList from "./components/ZoneStatusList";
-import GuardianSOS from "./components/GuardianSOS";
 import AgentLog from "./components/AgentLog";
-import IncentiveToast from "./components/IncentiveToast";
 import AIInsightDrawer from "./components/AIInsightDrawer";
 import { findPath } from "./utils/api";
 
@@ -17,16 +15,10 @@ import { findPath } from "./utils/api";
  */
 
 export default function App() {
-  const {
-    venueData,
-    incentives,
-    agentLogs,
-    connected,
-    tick,
-    dismissIncentive,
-    atmosphere,
-  } = useVenueData();
-  const [staffMode, setStaffMode] = useState(false);
+  const { matchState, lastEvent } = useMatchSimulation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const staffMode = location.pathname === "/ops";
   const [path, setPath] = useState(null);
   const [sosAlerts, setSosAlerts] = useState([]);
 
@@ -76,6 +68,52 @@ export default function App() {
     };
   }, []);
 
+  const standCapacities = useMemo(
+    () => ({
+      NORTH: matchState.capacity.north,
+      SOUTH: matchState.capacity.south,
+      EAST: matchState.capacity.east,
+      WEST: matchState.capacity.west,
+    }),
+    [matchState.capacity],
+  );
+
+  const liveAgentLogs = useMemo(() => {
+    const stamp = new Date().toLocaleTimeString("en-US", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return [
+      {
+        id: "sim-1",
+        agent: "Guardian",
+        initials: "GB",
+        avatar: "#10B981",
+        timestamp: stamp,
+        text: `SECTORS STABLE. Noise ${matchState.noise_db}dB. Phase: ${matchState.phase}.`,
+      },
+      {
+        id: "sim-2",
+        agent: "Sync Agent",
+        initials: "SA",
+        avatar: "#3B82F6",
+        timestamp: stamp,
+        text: `Stand loads N:${matchState.capacity.north}% E:${matchState.capacity.east}% W:${matchState.capacity.west}% S:${matchState.capacity.south}%.`,
+      },
+      {
+        id: "sim-3",
+        agent: "Flow Agent",
+        initials: "FA",
+        avatar: "#F59E0B",
+        timestamp: stamp,
+        text: lastEvent
+          ? `Latest ball event: ${lastEvent}. Dynamic routing refreshed.`
+          : "Awaiting first delivery event...",
+      },
+    ];
+  }, [lastEvent, matchState]);
+
   useEffect(() => {
     const t = setInterval(() => setTime((p) => p + 1), 1000);
     return () => clearInterval(t);
@@ -103,13 +141,13 @@ export default function App() {
     <div className={`segmented-control ${mini ? 'segmented-control-mini' : ''}`}>
       <button 
         className={`segment-btn ${staffMode ? 'active' : ''}`}
-        onClick={() => setStaffMode(true)}
+        onClick={() => navigate("/ops")}
       >
         Ops
       </button>
       <button 
         className={`segment-btn ${!staffMode ? 'active' : ''}`}
-        onClick={() => setStaffMode(false)}
+        onClick={() => navigate("/")}
       >
         User
       </button>
@@ -175,7 +213,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <VibeMap venueData={venueData} path={path} sosAlerts={sosAlerts} attendeeMode={false} userPos={userPos} incentives={incentives} showHeatmap={showHeatmap} />
+              <VibeMap venueData={null} standCapacities={standCapacities} path={path} sosAlerts={sosAlerts} attendeeMode={false} userPos={userPos} incentives={[]} showHeatmap={showHeatmap} />
             </main>
 
             <aside className="w-[450px] flex-shrink-0 border-l border-white/5 flex flex-col bg-[#0A0E1A]/40 backdrop-blur-md">
@@ -183,29 +221,16 @@ export default function App() {
                 <div className="space-y-6">
                   <h2 className="tech-header text-red-tactical border-b border-white/5 pb-2 font-heading">Critical Alerts</h2>
                   <div className="space-y-4">
-                    <ActionableAlert title="Gate North · Congestion Alert" detail="89% capacity threshold exceeded" time="14:52:01" status="critical" />
+                    <ActionableAlert title="Gate North · Congestion Alert" detail={`${matchState.capacity.north}% capacity threshold reached`} time="17:26:11" status="critical" />
                   </div>
                 </div>
                 <div className="space-y-6">
                   <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">Agent Intel</h2>
-                  <AgentLog logs={agentLogs} />
+                  <AgentLog logs={liveAgentLogs} />
                 </div>
               </div>
             </aside>
           </div>
-
-          <footer className="h-[60px] border-t border-white/5 bg-[#010409] flex items-center justify-between px-10 text-[9px] font-black tracking-[0.2em] text-text-dim uppercase z-50">
-            <div className="flex gap-16 font-data text-[8px]">
-              <span className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-green-tactical shadow-[0_0_8px_var(--green-tactical)]" />
-                Core System Nominal
-              </span>
-            </div>
-            <div className="flex gap-16 font-data">
-              <span>Latency: 14ms</span>
-              <span className="text-amber-tactical">CPU Load: 34%</span>
-            </div>
-          </footer>
 
           <button onClick={() => setIsInsightOpen(true)} className="fixed bottom-24 right-10 z-[60] w-16 h-16 rounded-full bg-cyan-tactical flex items-center justify-center text-black text-2xl shadow-[0_0_30px_rgba(0,212,255,0.5)] animate-fab-pulse">
             <span>✦</span>
@@ -223,11 +248,12 @@ export default function App() {
       {/* Top Status Bar */}
       <header className="mobile-status-bar font-data">
         <div className="attendee-shell-inner mobile-status-bar-inner">
-          <div className="flex flex-col">
+          <div className="min-w-0 flex-1 pr-2">
             <span className="text-[8px] text-text-secondary uppercase tracking-[0.2em] font-black opacity-60">Your Location</span>
-            <span className="text-[10px] text-white font-bold tracking-tight">SEC-SOUTH · Row 12 · Seat 43</span>
+            <span className="block text-[10px] text-white font-bold tracking-tight truncate">SEC-SOUTH · Row 12 · Seat 43</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            {renderAdminToggle(true)}
             <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#10b981]" />
               <span className="text-[9px] font-black text-white tracking-[0.2em]">LIVE</span>
@@ -235,10 +261,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
-      <div className="attendee-toggle-floating">
-        {renderAdminToggle(true)}
-      </div>
 
       {/* Main Content Area */}
       <div className="mobile-content-scroller no-scrollbar">
@@ -252,7 +274,7 @@ export default function App() {
                     IND vs AUS · T20 · Live
                   </p>
                   <p className="mt-3 text-3xl font-black text-white font-data tracking-tight">
-                    IND 142/3 (14.2 ov)
+                    {matchState.batting_team} {matchState.score}/{matchState.wickets} ({matchState.overs.toFixed(1)} ov)
                   </p>
                 </div>
                 <span className="text-[11px] text-text-secondary font-bold">
@@ -272,7 +294,7 @@ export default function App() {
             </div>
 
             <AtmosphereMetrics 
-              noise={86.3}
+              noise={matchState.noise_db}
               aqi="Moderate"
               wifi="Optimal"
             />
@@ -283,7 +305,7 @@ export default function App() {
 
         {mobileTab === "MAP" && (
           <div className="h-[calc(100vh-112px)] relative animate-in fade-in duration-500 overflow-hidden">
-             <VibeMap venueData={venueData} path={path} sosAlerts={sosAlerts} attendeeMode={true} userPos={userPos} incentives={incentives} showHeatmap={showHeatmap} />
+             <VibeMap venueData={null} standCapacities={standCapacities} path={path} sosAlerts={sosAlerts} attendeeMode={true} userPos={userPos} incentives={[]} showHeatmap={showHeatmap} />
              {/* Floating Heatmap Toggle for Mobile */}
              <div className="absolute top-6 left-6">
               <div className="flex items-center gap-3 bg-black/60 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-xl">
@@ -306,7 +328,7 @@ export default function App() {
         {mobileTab === "ALERTS" && (
           <div className="py-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-black text-white px-2">Safety & Alerts</h2>
-            <AgentLog logs={agentLogs.slice(0, 5)} />
+            <AgentLog logs={liveAgentLogs} />
             <div className="p-6 glass-tactical rounded-3xl border-l-4 border-accent-gold">
               <p className="text-xs font-bold text-accent-gold mb-1">Fan Notice</p>
               <p className="text-[11px] text-white/70 leading-relaxed">Concourse B is seeing high traffic. AI Suggests using North Exit for faster departure.</p>

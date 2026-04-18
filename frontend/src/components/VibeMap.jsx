@@ -27,6 +27,7 @@ const HEATMAP_COLORS = {
 
 export default function VibeMap({
   venueData,
+  standCapacities,
   path,
   sosAlerts = [],
   onCellClick,
@@ -40,6 +41,14 @@ export default function VibeMap({
   const [tooltip, setTooltip] = useState(null);
 
   const sectionStats = useMemo(() => {
+    if (standCapacities) {
+      return {
+        NORTH: { capacity: standCapacities.NORTH ?? 0 },
+        SOUTH: { capacity: standCapacities.SOUTH ?? 0 },
+        EAST: { capacity: standCapacities.EAST ?? 0 },
+        WEST: { capacity: standCapacities.WEST ?? 0 },
+      };
+    }
     if (!venueData) return {};
     const stats = {};
     venueData.forEach((row, ri) => {
@@ -63,7 +72,7 @@ export default function VibeMap({
       stats[stand] = { capacity };
     });
     return stats;
-  }, [venueData]);
+  }, [venueData, standCapacities]);
 
   const attendeeDots = useMemo(() => {
     const dots = [];

@@ -54,6 +54,8 @@ export default function AgentLog({ logs = [] }) {
     }
   }, [visibleCount]);
 
+  const renderedLogs = logs.length > 0 ? logs : STREAM_MESSAGES.slice(0, visibleCount);
+
   return (
     <div className="flex flex-col rounded-2xl overflow-hidden h-full bg-[#1C2333]/30 border border-white/5">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-[#0A0E1A]/40">
@@ -69,13 +71,13 @@ export default function AgentLog({ logs = [] }) {
         className="flex-1 overflow-y-auto px-6 py-4 space-y-6 font-data"
         style={{ maxHeight: '500px' }}
       >
-        {visibleCount === 0 ? (
+        {renderedLogs.length === 0 ? (
           <div className="text-center py-12 flex flex-col items-center gap-4">
             <div className="w-6 h-6 border-2 border-white/10 border-t-cyan-tactical rounded-full animate-spin" />
             <p className="text-text-dim text-[10px] tracking-[0.1em] font-heading">Streaming agent telemetry...</p>
           </div>
         ) : (
-          STREAM_MESSAGES.slice(0, visibleCount).map((log) => {
+          renderedLogs.map((log) => {
             return (
               <div key={log.id} className="flex items-start gap-4 group">
                 <div
