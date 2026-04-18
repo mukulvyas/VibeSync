@@ -6,17 +6,17 @@
 
 /* ── Design System Tokens ────────────────────────── */
 :root {
-  --bg-space: #020617;
-  --bg-panel: #080d14;
-  --bg-card: #0d1520;
+  --bg-space: #010409;
+  --bg-panel: #0d1117;
+  --bg-card: #161b22;
   --cyan-tactical: #00d2ff;
   --amber-tactical: #f5a623;
   --red-tactical: #ff4d4d;
   --magenta-tactical: #d946ef;
-  --text-primary: #e2e8f0;
-  --text-dim: #5a7a8a;
-  --border-dim: rgba(0, 210, 255, 0.1);
-  --border-active: rgba(0, 210, 255, 0.3);
+  --text-primary: #f0f6fc;
+  --text-dim: #8b949e;
+  --border-dim: rgba(0, 210, 255, 0.15);
+  --border-active: rgba(0, 210, 255, 0.4);
 }
 
 * {
@@ -26,136 +26,121 @@
 }
 
 body {
-  font-family: 'JetBrains Mono', 'Inter', monospace;
+  font-family: 'Inter', 'JetBrains Mono', sans-serif;
   background-color: var(--bg-space);
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  font-size: 16px; 
 }
 
-#root {
-  min-height: 100vh;
+/* ── Superiority Overhaul Stylings ────────────────── */
+
+@layer utilities {
+  .glass-tactical {
+    background: rgba(13, 17, 23, 0.7);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .text-glow-cyan {
+    text-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+  }
+
+  .shadow-tactical {
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0, 210, 255, 0.03);
+  }
 }
 
-/* ── Tactical Layout Components ────────────────── */
 @layer components {
   /* Sidebar Container */
   .tactical-sidebar {
-    @apply h-full flex flex-col;
-    background: var(--bg-panel);
+    @apply h-full flex flex-col backdrop-blur-xl;
+    background: rgba(13, 17, 23, 0.95);
     border-right: 1px solid var(--border-dim);
   }
 
   /* Main Dashboard Panels */
   .tactical-panel {
-    @apply rounded-none p-4;
+    @apply rounded-none p-6;
     background: var(--bg-card);
     border: 1px solid var(--border-dim);
-    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
   }
 
-  /* High-fidelity Sidebar Buttons (Left Rail) */
+  /* High-fidelity Sidebar Buttons */
   .sidebar-nav-item {
-    @apply flex flex-col items-center justify-center py-6 px-2 transition-all duration-300 cursor-pointer border-l-2 border-transparent;
+    @apply flex flex-col items-center justify-center py-6 px-4 transition-all duration-500 cursor-pointer border-l-4 border-transparent relative overflow-hidden;
     color: var(--text-dim);
   }
   .sidebar-nav-item:hover {
-    color: var(--cyan-tactical);
-    background: rgba(0, 210, 255, 0.03);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
   }
   .sidebar-nav-item.active {
     color: var(--cyan-tactical);
-    background: rgba(0, 210, 255, 0.05);
+    background: linear-gradient(to right, rgba(0, 210, 255, 0.1), transparent);
     border-left-color: var(--cyan-tactical);
-  }
-
-  /* Status Badges */
-  .status-badge {
-    @apply px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
-    border: 1px solid currentColor;
   }
 
   /* Technical Headers */
   .tech-header {
-    @apply text-[11px] font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .tech-header::before {
-    content: '';
-    @apply w-1.5 h-1.5 rotate-45;
-    background: currentColor;
+    @apply text-[10px] font-black tracking-[0.4em] uppercase mb-4 flex items-center gap-3 py-2;
+    color: var(--cyan-tactical);
   }
 
   /* Large Metric Cards */
   .metric-card {
-    @apply p-5 relative overflow-hidden;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dim);
-  }
-  .metric-card::after {
-    content: '';
-    @apply absolute top-0 right-0 w-8 h-8 pointer-events-none;
-    background: linear-gradient(135deg, transparent 50%, rgba(0, 210, 255, 0.05) 50%);
+    @apply p-8 relative overflow-hidden rounded-xl glass-tactical border border-white/5 shadow-tactical;
   }
 
+  /* Buttons */
   .btn-tactical {
-    @apply px-4 py-2 font-bold uppercase text-[10px] tracking-widest transition-all duration-300;
-    font-family: 'Rajdhani', sans-serif;
-    background: rgba(0, 210, 255, 0.05);
-    border: 1px solid var(--cyan-tactical);
-    color: var(--cyan-tactical);
+    @apply px-10 py-4 font-black uppercase text-xs tracking-[0.4em] transition-all duration-500 rounded-sm relative overflow-hidden;
+    background: #fff;
+    color: #010409;
   }
   .btn-tactical:hover {
-    background: var(--cyan-tactical);
-    color: var(--bg-space);
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+    background-color: var(--cyan-tactical);
+    box-shadow: 0 0 30px rgba(0, 210, 255, 0.4);
   }
 }
 
 /* ── Blueprint Map Styles ────────────────────────── */
 .map-blueprint-bg {
-  background-color: var(--bg-space);
+  background-color: #010409;
   background-image: 
-    radial-gradient(circle at 2px 2px, rgba(0, 210, 255, 0.05) 1px, transparent 0);
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
-.map-geometry-path {
-  stroke: var(--cyan-tactical);
-  stroke-width: 1.5;
-  fill: rgba(0, 210, 255, 0.02);
-  filter: drop-shadow(0 0 2px rgba(0, 210, 255, 0.2));
-}
-
-/* ── Animations ──────────────────────────────────── */
-@keyframes techPulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
-.animate-tech-pulse {
-  animation: techPulse 2s infinite;
-}
-
+/* ── Animations ────────────────────────────── */
 @keyframes scanLine {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(100%); }
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
 }
-.scanner-effect {
-  @apply absolute inset-0 pointer-events-none overflow-hidden;
-}
+
 .scanner-effect::after {
   content: '';
-  @apply absolute inset-x-0 h-24 opacity-20;
+  @apply absolute inset-x-0 h-[200px] opacity-10;
   background: linear-gradient(to bottom, transparent, var(--cyan-tactical), transparent);
-  animation: scanLine 8s linear infinite;
+  animation: scanLine 6s linear infinite;
+  filter: blur(40px);
 }
 
-/* ── Custom Utilities ────────────────────────────── */
-.font-rajdhani { font-family: 'Rajdhani', sans-serif; }
-.tracking-ultra { letter-spacing: 0.3em; }
+.energy-ribbon {
+  stroke-dasharray: 20 40;
+  animation: energy-flow 3s linear infinite;
+}
 
-/* Scrollbar Overrides */
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: var(--bg-space); }
-::-webkit-scrollbar-thumb { background: var(--border-active); }
+@keyframes energy-flow {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #010409; }
+::-webkit-scrollbar-thumb { background: rgba(0, 210, 255, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan-tactical); }

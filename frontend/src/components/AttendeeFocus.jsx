@@ -4,87 +4,95 @@ import React from 'react';
  * AttendeeFocus — The left sidebar for Sentinel Command.
  * Focused shortcuts for Washroom, Food, and Seat guidance.
  */
-export default function AttendeeFocus({ onAction }) {
+
+export default function AttendeeFocus({ onAction, proximities }) {
+  const p = proximities || {};
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-sm font-bold tracking-widest text-[#00d2ff]">ATTENDEE FOCUS</h2>
-        <span className="text-[10px] text-text-dim tracking-tighter uppercase">SECTOR ALPHA</span>
+    <div className="space-y-10">
+      <div className="flex flex-col gap-2">
+         <h3 className="text-[10px] font-black tracking-[0.4em] text-cyan-tactical uppercase">EXPRESS_ACTIONS</h3>
+         <p className="text-xs text-text-dim uppercase font-bold tracking-widest">Real-time venue intelligence</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <FocusCard 
           icon="🚻" 
-          title="FIND WASHROOM" 
-          sub="Restroom Hub 08 • Level 2"
+          title="FIND_WASHROOM" 
+          sub={p.WASHROOM?.label || "HUB_08"}
           status="MODERATE"
-          metrics={{ distance: '3m away', stat: '40% occupancy' }}
+          metrics={{ distance: `${p.WASHROOM?.meters || 0}m`, stat: `${p.WASHROOM?.minutes || 0}m wait` }}
           onClick={() => onAction('POI_WASHROOM')}
+          progress={45}
         />
 
         <FocusCard 
-          icon="🍴" 
-          title="FIND FOOD" 
-          sub="Signature Grill & Brew"
-          status="5 MIN WAIT"
-          metrics={{ distance: 'Kiosk 04', stat: 'Near Path' }}
-          onClick={() => onAction('POI_FOOD')}
+          icon="💧" 
+          title="HYDRATION_HUB" 
+          sub={p.HYDRATION?.label || "WATER_STAT"}
+          status="OPTIMAL"
+          metrics={{ distance: `${p.HYDRATION?.meters || 0}m`, stat: `No wait` }}
+          onClick={() => onAction('POI_HYDRATION')}
+          progress={10}
         />
 
         <FocusCard 
           icon="💺" 
-          title="FIND SEAT" 
-          sub="Gate North Entrance"
-          status="ASSIGNED: SEC-104"
-          metrics={{ distance: 'Row 12', stat: 'Seat A-24' }}
+          title="RE-ROUTE_SEAT" 
+          sub="SEC-104 Entrance"
+          status="PRIORITY"
+          metrics={{ distance: 'Row 12', stat: 'Gate N2' }}
           onClick={() => onAction('GUIDE_SEAT')}
-          actionText="START GUIDANCE"
+          actionText="START_PATH"
         />
-      </div>
-
-      <div className="pt-4 border-t border-border-dim">
-         <p className="text-[9px] font-mono tracking-widest text-text-dim mb-2 uppercase">SYSTEM NEURAL LOAD</p>
-         <div className="h-1 w-full bg-bg-panel relative overflow-hidden">
-            <div className="h-full bg-cyan-tactical animate-pulse" style={{ width: '24%' }} />
-         </div>
-         <p className="text-[8px] font-mono text-cyan-tactical mt-1 text-right">24%</p>
       </div>
     </div>
   );
 }
 
-function FocusCard({ icon, title, sub, status, metrics, onClick, actionText }) {
+function FocusCard({ icon, title, sub, status, metrics, onClick, actionText = "GET_DIRECTION", progress }) {
   return (
-    <div className="metric-card group transition-all duration-500 hover:border-cyan-tactical cursor-pointer" onClick={onClick}>
-      <div className="flex gap-4 items-start mb-3">
-        <div className="w-10 h-10 bg-bg-space border border-border-dim flex items-center justify-center text-xl grayscale group-hover:grayscale-0 transition-all">
-          {icon}
-        </div>
-        <div className="flex-1">
-          <div className="flex justify-between items-start">
-            <h3 className="text-[11px] font-bold tracking-widest text-white group-hover:text-cyan-tactical transition-colors uppercase">{title}</h3>
-            {status && <span className="text-[9px] font-bold text-amber-tactical tracking-tighter">{status}</span>}
+    <div className="group relative transition-all duration-300 transform active:scale-95">
+      <div className="absolute -inset-1 bg-gradient-to-r from-cyan-tactical/20 to-transparent blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <div className="relative glass-tactical border border-white/5 p-6 rounded-2xl space-y-4 hover:border-cyan-tactical/40 transition-all overflow-hidden bg-white/5 backdrop-blur-3xl shadow-2xl">
+        <div className="flex justify-between items-start">
+          <div className="flex gap-4 items-center">
+            <div className="w-14 h-14 rounded-xl bg-black/40 flex items-center justify-center text-3xl shadow-inner border border-white/5">{icon}</div>
+            <div className="flex flex-col">
+              <h4 className="text-sm font-black tracking-widest text-white uppercase">{title}</h4>
+              <p className="text-[10px] font-bold text-text-dim tracking-wider">{sub}</p>
+            </div>
           </div>
-          <p className="text-[10px] text-text-dim mt-0.5">{sub}</p>
+          <span className={`text-[9px] font-black px-3 py-1 rounded-full border ${status === 'OPTIMAL' ? 'border-green-400/40 text-green-400 bg-green-400/5' : status === 'PRIORITY' ? 'border-cyan-tactical text-cyan-tactical bg-cyan-tactical/5' : 'border-amber-400/40 text-amber-400 bg-amber-400/5'}`}>
+            {status}
+          </span>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4 py-3 border-y border-border-dim/50 mb-3">
-        <div className="space-y-0.5">
-          <p className="text-[8px] font-mono text-text-dim uppercase">Distance/Wait</p>
-          <p className="text-xs font-bold text-white uppercase">{metrics.distance}</p>
+        <div className="flex justify-between items-center pt-2">
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black text-text-dim uppercase tracking-widest mb-1">PROXIMITY</span>
+            <p className="text-sm font-mono font-bold text-white">{metrics.distance}</p>
+          </div>
+          <div className="flex flex-col text-right">
+            <span className="text-[9px] font-black text-text-dim uppercase tracking-widest mb-1">TELEMETRY</span>
+            <p className="text-sm font-mono font-bold text-cyan-tactical">{metrics.stat}</p>
+          </div>
         </div>
-        <div className="space-y-0.5">
-          <p className="text-[8px] font-mono text-text-dim uppercase">Occupancy/Info</p>
-          <p className="text-xs font-bold text-white uppercase">{metrics.stat}</p>
-        </div>
-      </div>
 
-      {actionText && (
-        <button className="btn-tactical w-full py-1.5 opacity-50 group-hover:opacity-100">
-           {actionText}
+        {progress !== undefined && (
+          <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
+            <div className={`h-full transition-all duration-1000 ${progress > 70 ? 'bg-red-400' : progress > 30 ? 'bg-amber-400' : 'bg-green-400'}`} style={{ width: `${progress}%` }} />
+          </div>
+        )}
+
+        <button 
+          onClick={onClick} 
+          className="w-full py-3.5 bg-white text-black text-[10px] font-black tracking-[0.2em] rounded-xl hover:bg-cyan-tactical hover:text-[#010409] transition-all shadow-xl"
+        >
+          {actionText}
         </button>
-      )}
+      </div>
     </div>
   );
 }
