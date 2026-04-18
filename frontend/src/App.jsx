@@ -39,6 +39,7 @@ export default function App() {
 
   // Navigation & UI State
   const [activeTab, setActiveTab] = useState("MAP");
+  const [mobileTab, setMobileTab] = useState("HOME");
   const [activeSidebar, setActiveSidebar] = useState("COMMAND");
   const [activeStaffTask, setActiveStaffTask] = useState("ANALYTICS");
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -98,366 +99,294 @@ export default function App() {
     }
   };
 
-  return (
-    <div
-      className={`flex h-screen overflow-hidden font-sans selection:bg-cyan-tactical/30 text-text-primary ${staffMode ? 'theme-ops' : 'theme-attendee'}`}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
-        body { font-family: 'Inter', sans-serif; font-size: 16px; background: #010409; }
-        .glass-tactical { background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(0, 210, 255, 0.1); }
-        h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
-        .data-number { font-family: 'JetBrains Mono', monospace; }
-      `}</style>
+  const renderAdminToggle = () => (
+    <div className="segmented-control">
+      <button 
+        className={`segment-btn ${staffMode ? 'active' : ''}`}
+        onClick={() => setStaffMode(true)}
+      >
+        Ops
+      </button>
+      <button 
+        className={`segment-btn ${!staffMode ? 'active' : ''}`}
+        onClick={() => setStaffMode(false)}
+      >
+        User
+      </button>
+    </div>
+  );
 
-      {/* ── Mission Control Sidebar ── */}
-      <aside className="w-[100px] flex-shrink-0 tactical-sidebar border-r border-white/5 bg-[#0d1117] scanline-overlay">
-        <div className="h-[100px] flex items-center justify-center border-b border-white/5 bg-black/40">
-          <div className="w-12 h-12 border-2 border-cyan-tactical flex items-center justify-center text-cyan-tactical font-black text-2xl shadow-[0_0_20px_rgba(0,212,255,0.4)]">
-            VS
-          </div>
-        </div>
-        <div className="flex-1 py-12 flex flex-col items-center gap-4">
-          <SidebarIcon
-            icon="📁"
-            label="Command"
-            active={activeSidebar === "COMMAND"}
-            onClick={() => setActiveSidebar("COMMAND")}
-          />
-          <SidebarIcon
-            icon="🛰️"
-            label="Sensors"
-            active={activeSidebar === "ZONES"}
-            onClick={() => setActiveSidebar("ZONES")}
-          />
-          <SidebarIcon
-            icon="📦"
-            label="Systems"
-            active={activeSidebar === "ASSETS"}
-            onClick={() => setActiveSidebar("ASSETS")}
-          />
-          <SidebarIcon
-            icon="💬"
-            label="Alerts"
-            active={activeSidebar === "COMMS"}
-            onClick={() => setActiveSidebar("COMMS")}
-          />
-        </div>
-        <div className="p-6 border-t border-white/5 flex flex-col items-center gap-8 bg-black/40">
-          <div className="w-12 h-12 rounded-full border-2 border-border-dim overflow-hidden hover:border-cyan-tactical transition-all cursor-pointer shadow-lg">
-            <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-              alt="user"
-            />
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main Dashboard Layout ── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* ── Header ── */}
-        <header className={`h-[100px] flex-shrink-0 flex items-center justify-between px-10 border-b border-white/5 backdrop-blur-3xl z-50 ${staffMode ? 'bg-[#0A0E1A]/95 grid-texture' : 'bg-[#111827]/98'}`}>
-          <div className="flex items-center gap-16">
-            <div className="flex flex-col">
-              <h1 className="text-2xl font-black tracking-[0.1em] text-white font-heading">
-                {staffMode ? "Ops Command" : "Stadium Twin"}
-              </h1>
-              <span className="text-[10px] font-bold text-cyan-tactical/60 tracking-[0.2em] font-heading">
-                Mission Control v4.0.2
-              </span>
+  if (staffMode) {
+    return (
+      <div className="flex h-screen overflow-hidden font-sans selection:bg-cyan-tactical/30 text-text-primary theme-ops">
+        {/* ── Mission Control Sidebar ── */}
+        <aside className="ops-sidebar-rail">
+          <div className="h-[100px] flex items-center justify-center border-b border-white/5 bg-black/40 flex-shrink-0">
+            <div className="w-8 h-8 border-2 border-cyan-tactical flex items-center justify-center text-cyan-tactical font-black text-lg shadow-[0_0_20px_rgba(0,212,255,0.4)]">
+              VS
             </div>
+          </div>
+          <div className="flex-1 py-8 flex flex-col gap-2">
+            <SidebarIcon icon="📁" label="Command" active={activeSidebar === "COMMAND"} onClick={() => setActiveSidebar("COMMAND")} />
+            <SidebarIcon icon="🛰️" label="Sensors" active={activeSidebar === "ZONES"} onClick={() => setActiveSidebar("ZONES")} />
+            <SidebarIcon icon="📦" label="Systems" active={activeSidebar === "ASSETS"} onClick={() => setActiveSidebar("ASSETS")} />
+            <SidebarIcon icon="💬" label="Alerts" active={activeSidebar === "COMMS"} onClick={() => setActiveSidebar("COMMS")} />
+          </div>
+          
+          <div className="sidebar-logo-mark">
+             <div className="text-[10px] font-black text-cyan-tactical tracking-[0.3em] opacity-40">VS</div>
+          </div>
 
-            {!staffMode && (
-              <div className="px-6 py-3 bg-[#1F2937] rounded-2xl border border-white/5 flex items-center gap-6 shadow-xl animate-in slide-in-from-top duration-500">
-                 <div className="flex flex-col">
-                   <span className="text-[10px] font-black text-[#F59E0B] uppercase tracking-widest">Your Section</span>
-                   <span className="text-sm font-black text-white">SEC-SOUTH</span>
-                 </div>
-                 <div className="w-px h-8 bg-white/10" />
-                 <div className="flex flex-col">
-                   <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Seat Info</span>
-                   <span className="text-sm font-black text-white">Row 12, Seat 42</span>
-                 </div>
+          <div className="p-4 border-t border-white/5 flex flex-col items-center gap-4 bg-black/40 flex-shrink-0">
+            <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden hover:border-cyan-tactical transition-all cursor-pointer shadow-lg">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="user" />
+            </div>
+          </div>
+        </aside>
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-[100px] flex-shrink-0 flex items-center justify-between px-10 border-b border-white/5 bg-[#0A0E1A]/95 backdrop-blur-3xl z-50 grid-texture">
+            <div className="flex items-center gap-16">
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-black tracking-[0.1em] text-white font-heading">Ops Command</h1>
+                <span className="text-[10px] font-bold text-cyan-tactical/60 tracking-[0.2em] font-heading">Mission Control v4.0.2</span>
               </div>
-            )}
-
-            <nav className="flex gap-2 h-full relative">
-              {(staffMode
-                ? ["Dashboard", "Analytics", "Logistics", "Security"]
-                : ["Overview", "Map", "Directions", "Logs"]
-              ).map((t, i) => {
-                const isActive = (staffMode ? activeStaffTask : activeTab) === t;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => staffMode ? setActiveStaffTask(t) : setActiveTab(t)}
-                    className={`h-full px-8 text-sm font-bold tracking-widest font-heading transition-colors ${
-                      isActive ? "text-cyan-tactical" : "text-text-dim hover:text-white"
-                    }`}
-                  >
+              <nav className="flex gap-2 h-full relative">
+                {["Dashboard", "Analytics", "Logistics", "Security"].map((t) => (
+                  <button key={t} onClick={() => setActiveStaffTask(t)} className={`h-full px-8 text-sm font-bold tracking-widest font-heading transition-colors ${activeStaffTask === t ? "text-cyan-tactical" : "text-text-dim hover:text-white"}`}>
                     {t}
                   </button>
-                );
-              })}
-              <div
-                className="absolute bottom-0 h-1 bg-cyan-tactical transition-all duration-300 rounded-t-full shadow-[0_0_15px_#00d2ff]"
-                style={{
-                  width: "80px",
-                  left: `${(staffMode ? ["Dashboard", "Analytics", "Logistics", "Security"].indexOf(activeStaffTask) : ["Overview", "Map", "Directions", "Logs"].indexOf(activeTab)) * 115 + 15}px`,
-                }}
-              />
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-10">
-            {/* Pill Toggle Switch */}
-            <div className="pill-toggle w-[140px] h-[40px] cursor-pointer" onClick={() => setStaffMode(!staffMode)}>
-              <div 
-                className="pill-toggle-active w-[68px]" 
-                style={{ transform: `translateX(${staffMode ? '0' : '68px'})` }} 
-              />
-              <div className="flex w-full h-full relative z-10 font-heading text-[9px] font-black items-center text-center">
-                <div className={`flex-1 transition-colors duration-300 ${staffMode ? 'text-black' : 'text-text-dim'}`}>Ops</div>
-                <div className={`flex-1 transition-colors duration-300 ${!staffMode ? 'text-black' : 'text-text-dim'}`}>User</div>
-              </div>
+                ))}
+              </nav>
             </div>
-
-            <div className="flex items-center gap-3 px-4 py-2 border border-cyan-tactical/20 bg-white/5 rounded-sm font-heading">
-              <div
-                className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#10b981] animate-pulse"
-              />
-              <span className="text-[9px] font-black text-cyan-tactical uppercase tracking-[0.2em]">
-                System Online
-              </span>
+            <div className="flex items-center gap-10">
+              {renderAdminToggle()}
+            <div className="status-pill-badge">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_10px_#10b981] animate-pulse" />
+              SYSTEM ONLINE
             </div>
-          </div>
-        </header>
+            </div>
+          </header>
 
-        {/* ── 3-COLUMN WIDE GRID ── */}
-        <div className="flex-1 flex min-h-0 bg-[#010409]">
-          {/* COLUMN 1: GLOBAL METRICS & TRENDS (Staff Only) */}
-          {staffMode && (
+          <div className="flex-1 flex min-h-0 bg-[#010409]">
             <aside className="w-[420px] flex-shrink-0 border-r border-white/5 p-10 overflow-y-auto bg-[#0d1117]/30 backdrop-blur-md">
               <div className="space-y-12">
                 <div className="space-y-4">
-                  <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">
-                    Predictive Analytics
-                  </h2>
+                  <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">Predictive Analytics</h2>
                   <PredictiveChart label="Crowd Density Analysis" data={history} />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <MetricBoxSmall
-                    label="Current Capacity"
-                    value="92%"
-                    color="#00D4FF"
-                  />
-                  <MetricBoxSmall
-                    label="System Load Avg"
-                    value="1.4s"
-                    color="#FFA502"
-                  />
+                  <MetricBoxSmall label="Current Capacity" value="92%" color="#00D4FF" />
+                  <MetricBoxSmall label="System Load Avg" value="1.4s" color="#FFA502" />
                 </div>
-
                 <div className="space-y-8">
-                  <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">
-                    System Vitality
-                  </h2>
-                  <HealthBar
-                    label="Neural Engine"
-                    value={88}
-                    max={100}
-                    unit="%"
-                    color="#00D4FF"
-                  />
-                  <HealthBar
-                    label="Data Latency"
-                    value={14}
-                    max={100}
-                    unit="ms"
-                    color="#FFA502"
-                  />
-                  <HealthBar
-                    label="Network Uplink"
-                    value={98}
-                    max={100}
-                    unit="%"
-                    color="#00D4FF"
-                  />
-                </div>
-
-                <div className="pt-6">
-                  <button className="w-full py-5 text-xs font-black tracking-[0.4em] uppercase font-heading bg-transparent border-2 border-red-tactical text-red-tactical rounded-md animate-danger-glow transition-all hover:bg-red-tactical/10">
-                    Override AI Flow
-                  </button>
+                  <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">System Vitality</h2>
+                  <HealthBar label="Neural Engine" value={88} max={100} unit="%" color="#00D4FF" />
+                  <HealthBar label="Data Latency" value={14} max={100} unit="ms" color="#FFA502" />
+                  <HealthBar label="Network Uplink" value={98} max={100} unit="%" color="#00D4FF" />
                 </div>
               </div>
             </aside>
-          )}
 
-          {/* COLUMN 2: THE 3D MAP ENGINE */}
-          <main className="flex-1 relative flex flex-col p-6 overflow-hidden bg-black/20">
-            {/* Floating Layer Controls */}
-            <div className="absolute top-10 left-10 z-[100] flex gap-4">
-            <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl p-2 rounded-full border border-white/5 shadow-2xl">
-              <span className="text-[10px] font-black tracking-widest text-text-dim uppercase ml-4">Heat Map</span>
-              <div 
-                className="w-14 h-7 bg-white/5 rounded-full relative p-1 cursor-pointer transition-colors hover:bg-white/10"
-                onClick={() => setShowHeatmap(!showHeatmap)}
-              >
-                <div 
-                  className={`w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${showHeatmap ? 'translate-x-7 bg-cyan-tactical' : 'translate-x-0 bg-text-dim'}`}
-                />
+            <main className="flex-1 relative flex flex-col p-6 overflow-hidden bg-black/20">
+              <div className="absolute top-10 left-10 z-[100]">
+                <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl p-2 rounded-full border border-white/5 shadow-2xl">
+                  <span className="text-[10px] font-black tracking-widest text-text-dim uppercase ml-4">Heat Map</span>
+                  <div className="w-14 h-7 bg-white/5 rounded-full relative p-1 cursor-pointer" onClick={() => setShowHeatmap(!showHeatmap)}>
+                    <div className={`w-5 h-5 rounded-full transition-all duration-300 shadow-lg ${showHeatmap ? 'translate-x-7 bg-cyan-tactical' : 'translate-x-0 bg-text-dim'}`} />
+                  </div>
+                </div>
               </div>
-            </div>
-            </div>
+              <VibeMap venueData={venueData} path={path} sosAlerts={sosAlerts} attendeeMode={false} userPos={userPos} incentives={incentives} showHeatmap={showHeatmap} />
+            </main>
 
-            <VibeMap
-              venueData={venueData}
-              path={path}
-              sosAlerts={sosAlerts}
-              attendeeMode={!staffMode}
-              userPos={userPos}
-              incentives={incentives}
-              showHeatmap={showHeatmap}
-            />
-          </main>
+            <aside className="w-[450px] flex-shrink-0 border-l border-white/5 flex flex-col bg-[#0A0E1A]/40 backdrop-blur-md">
+              <div className="flex-1 p-10 overflow-y-auto space-y-12">
+                <div className="space-y-6">
+                  <h2 className="tech-header text-red-tactical border-b border-white/5 pb-2 font-heading">Critical Alerts</h2>
+                  <div className="space-y-4">
+                    <ActionableAlert title="Gate North · Congestion Alert" detail="89% capacity threshold exceeded" time="14:52:01" status="critical" />
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">Agent Intel</h2>
+                  <AgentLog logs={agentLogs} />
+                </div>
+              </div>
+            </aside>
+          </div>
 
-          {/* COLUMN 3: ACTIONABLE INTELLIGENCE & LOGS */}
-          <aside className="w-[450px] flex-shrink-0 border-l border-white/5 flex flex-col bg-[#0A0E1A]/40 backdrop-blur-md">
-            <div className="flex-1 p-10 overflow-y-auto space-y-12">
-              {staffMode ? (
-                <>
-                  <div className="space-y-6">
-                    <h2 className="tech-header text-red-tactical border-b border-white/5 pb-2 font-heading">
-                      Critical Alerts
-                    </h2>
-                    <div className="space-y-4">
-                      <ActionableAlert
-                        title="Gate North · Congestion Alert"
-                        detail="89% capacity threshold exceeded"
-                        time="14:52:01"
-                        status="critical"
-                      />
-                      <ActionableAlert
-                        title="Sensor Failure · Sector B2"
-                        detail="Mesh connectivity lost in secondary array"
-                        time="14:51:22"
-                        status="warning"
-                      />
+          <footer className="h-[60px] border-t border-white/5 bg-[#010409] flex items-center justify-between px-10 text-[9px] font-black tracking-[0.2em] text-text-dim uppercase z-50">
+            <div className="flex gap-16 font-data text-[8px]">
+              <span className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-tactical shadow-[0_0_8px_var(--green-tactical)]" />
+                Core System Nominal
+              </span>
+            </div>
+            <div className="flex gap-16 font-data">
+              <span>Latency: 14ms</span>
+              <span className="text-amber-tactical">CPU Load: 34%</span>
+            </div>
+          </footer>
+
+          <button onClick={() => setIsInsightOpen(true)} className="fixed bottom-24 right-10 z-[60] w-16 h-16 rounded-full bg-cyan-tactical flex items-center justify-center text-black text-2xl shadow-[0_0_30px_rgba(0,212,255,0.5)] animate-fab-pulse">
+            <span>✦</span>
+          </button>
+          <AIInsightDrawer isOpen={isInsightOpen} onClose={() => setIsInsightOpen(false)} />
+        </div>
+      </div>
+    );
+  }
+
+  // --- ATTENDEE MOBILE SIMULATION ---
+  return (
+    <div className="mobile-mockup-bg">
+      {/* Floating Demo Admin Toggle */}
+      <div className="fixed top-10 right-10 z-[200]">
+        {renderAdminToggle()}
+      </div>
+
+      <div className="phone-frame theme-attendee">
+        {/* Mobile Status Bar */}
+        <header className="mobile-status-bar font-data">
+          <div className="flex flex-col">
+            <span className="text-[8px] text-text-dim uppercase tracking-widest font-black">Your Location</span>
+            <span className="text-[10px] text-white font-bold tracking-tight">SEC-SOUTH · Row 12 · Seat 43</span>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
+             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#10b981]" />
+             <span className="text-[9px] font-black text-white tracking-[0.2em]">LIVE</span>
+          </div>
+        </header>
+
+        {/* Scrollable Content Area */}
+        <main className="app-content app-screen-scroll">
+          {mobileTab === "HOME" && (
+            <div className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <AttendeeFocus attendeeOnly proximities={proximities} onAction={handleAction} />
+              
+              <AtmosphereMetrics 
+                noise={atmosphere.noise_level_db} 
+                aqi={atmosphere.air_quality_aqi} 
+                wifi={atmosphere.wifi_mesh_mbps} 
+              />
+              
+              {/* Match Clock Section */}
+              <div className="relative p-7 rounded-[16px] overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0E1623] to-[#162030] border border-white/5 opacity-80" />
+                <div className="absolute inset-0 border border-ios-blue/20 rounded-[16px] pointer-events-none" />
+                
+                <div className="relative z-10 space-y-4">
+                  <div className="flex justify-between items-center px-1">
+                    <div className="pill-live flex items-center gap-2 text-[9px] font-bold text-white/60 uppercase tracking-widest">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                      LIVE HUD
+                    </div>
+                    <span className="text-[10px] font-black text-white/40 tracking-[0.3em] font-heading">MATCH CLOCK</span>
+                  </div>
+                  
+                  <div className="flex justify-center items-center py-4 bg-black/20 rounded-2xl border border-white/5 shadow-inner">
+                    <div className="text-7xl font-black font-data text-white tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                      {String(Math.floor(matchSeconds / 60)).padStart(2, "0")}
+                      <span className="animate-blink text-ios-blue mx-1">:</span>
+                      {String(matchSeconds % 60).padStart(2, "0")}
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">
-                      Agent Intel
-                    </h2>
-                    <AgentLog logs={agentLogs} />
+                  <div className="flex justify-between px-2 pt-2">
+                     <div className="flex flex-col">
+                        <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest mb-1">Current Quarter</span>
+                        <div className="text-lg font-black text-white font-data">Q2 · 14'</div>
+                     </div>
+                     <div className="flex flex-col text-right">
+                        <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest mb-1">Scoreboard</span>
+                        <div className="text-lg font-black text-[#F59E0B] font-data">84 - 72</div>
+                     </div>
                   </div>
-                </>
-              ) : (
-                <AttendeeFocus
-                  onAction={handleAction}
-                  proximities={proximities}
-                />
-              )}
+                </div>
+              </div>
             </div>
+          )}
 
-            {!staffMode && (
-              <div className="p-10 border-t border-white/5 bg-black/20 space-y-8">
-                <AtmosphereMetrics
-                  noise={atmosphere.noise_level_db}
-                  aqi={atmosphere.air_quality_aqi}
-                  wifi={atmosphere.wifi_mesh_mbps}
-                />
-                <div className="p-8 bg-[#111827] rounded-[32px] border border-white/5 shadow-2xl relative overflow-hidden scoreboard-lcd">
-                  <div className="absolute top-0 right-0 p-4 opacity-5">
-                     <span className="text-4xl font-black">88</span>
+          {mobileTab === "MAP" && (
+            <div className="h-full relative animate-in fade-in duration-500">
+               <VibeMap venueData={venueData} path={path} sosAlerts={sosAlerts} attendeeMode={true} userPos={userPos} incentives={incentives} showHeatmap={showHeatmap} />
+               {/* Floating Heatmap Toggle for Mobile */}
+               <div className="absolute top-6 left-6">
+                <div className="flex items-center gap-3 bg-black/60 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-xl">
+                  <div className="w-10 h-5 bg-white/10 rounded-full relative p-0.5 cursor-pointer" onClick={() => setShowHeatmap(!showHeatmap)}>
+                    <div className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${showHeatmap ? 'translate-x-5 bg-cyan-tactical' : 'translate-x-0 bg-text-dim'}`} />
                   </div>
-                  <div className="flex items-center gap-3 mb-4 font-heading">
-                    <div className="w-1.5 h-4 bg-[#F59E0B] rounded-full" />
-                    <span className="text-[11px] font-black tracking-widest text-text-dim">
-                      Live Match Clock
-                    </span>
-                  </div>
-                  <p className="text-7xl font-black font-data text-white tracking-widest mb-1 tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                    {formatTime(matchSeconds)}
-                  </p>
-                  <p className="text-[10px] font-bold text-[#F59E0B] uppercase tracking-widest ml-1">
-                    Second Half · Final Quarter
-                  </p>
+                  <span className="text-[8px] font-black tracking-widest text-white/60 mr-2 uppercase">Heatmap</span>
                 </div>
+               </div>
+            </div>
+          )}
+
+          {mobileTab === "FIND" && (
+            <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-2xl font-black text-white px-2">Find Amenities</h2>
+              <AttendeeFocus onAction={handleAction} proximities={proximities} focused={true} />
+            </div>
+          )}
+
+          {mobileTab === "ALERTS" && (
+            <div className="p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-2xl font-black text-white px-2">Safety & Alerts</h2>
+              <AgentLog logs={agentLogs.slice(0, 5)} />
+              <div className="p-6 glass-tactical rounded-3xl border-l-4 border-accent-gold">
+                <p className="text-xs font-bold text-accent-gold mb-1">Fan Notice</p>
+                <p className="text-[11px] text-white/70 leading-relaxed">Concourse B is seeing high traffic. AI Suggests using North Exit for faster departure.</p>
               </div>
-            )}
-            
-            {!staffMode && (
-              <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-[400px]">
-                <div className="bg-[#1F2937]/90 backdrop-blur-2xl border border-white/10 rounded-full px-8 py-5 flex justify-between items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                  <NavItem icon="🏠" label="Home" active />
-                  <NavItem icon="🗺️" label="Map" />
-                  <NavItem icon="🔍" label="Find" />
-                  <NavItem icon="🔔" label="Alerts" count={2} />
-                </div>
-              </div>
-            )}
-          </aside>
-        </div>
+            </div>
+          )}
+        </main>
 
-        {/* ── Mission Control Footer ── */}
-        <footer className="h-[60px] border-t border-white/5 bg-[#010409] flex items-center justify-between px-10 text-[9px] font-black tracking-[0.2em] text-text-dim uppercase z-50 relative overflow-hidden scanline-overlay grid-texture">
-          <div className="flex gap-16 relative z-10 font-heading">
-            <span className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-green-tactical shadow-[0_0_8px_var(--green-tactical)]" />
-              Core System Nominal
-            </span>
-            <span className="flex items-center gap-3 text-cyan-tactical/60 hover:text-cyan-tactical transition-colors cursor-pointer">
-              Secure Uplink Active
-            </span>
-          </div>
-          <div className="flex gap-16 relative z-10 font-data">
-            <span>Latency: 14ms</span>
-            <span className="text-amber-tactical">CPU Load: 34%</span>
-            <span className="text-white/20">v4.0.21 build.774</span>
-          </div>
-        </footer>
-
-        {/* AI Insight Trigger FAB */}
-        <button
-          onClick={() => setIsInsightOpen(true)}
-          className="fixed bottom-24 right-10 z-[60] w-16 h-16 rounded-full bg-cyan-tactical flex items-center justify-center text-black text-2xl shadow-[0_0_30px_rgba(0,212,255,0.5)] animate-fab-pulse group transition-transform active:scale-90 hover:scale-110"
-        >
-          <span className="transition-transform group-hover:rotate-12">✦</span>
-        </button>
-
-        {/* AI Insight Drawer */}
-        <AIInsightDrawer isOpen={isInsightOpen} onClose={() => setIsInsightOpen(false)} />
+        {/* Bottom Tab Bar */}
+        <nav className="bottom-tabs">
+          <MobileTabItem icon="🏠" label="Home" active={mobileTab === "HOME"} onClick={() => setMobileTab("HOME")} />
+          <MobileTabItem icon="🗺️" label="Map" active={mobileTab === "MAP"} onClick={() => setMobileTab("MAP")} />
+          <MobileTabItem icon="🔍" label="Find" active={mobileTab === "FIND"} onClick={() => setMobileTab("FIND")} />
+          <MobileTabItem icon="🔔" label="Alerts" active={mobileTab === "ALERTS"} onClick={() => setMobileTab("ALERTS")} />
+        </nav>
       </div>
+
+      <AIInsightDrawer isOpen={isInsightOpen} onClose={() => setIsInsightOpen(false)} />
+      
+      {/* Global AI FAB Trigger */}
+      <button 
+        onClick={() => setIsInsightOpen(true)}
+        className="fixed bottom-[80px] right-4 z-[500] fab-ai"
+        title="AI Insights available"
+      >
+        <span className="text-2xl">✦</span>
+      </button>
     </div>
   );
 }
 
+function MobileTabItem({ icon, label, active, onClick }) {
+  return (
+    <div className={`tab-item ${active ? 'active' : ''}`} onClick={onClick}>
+      <span className="tab-icon text-2xl">{icon}</span>
+      <span className="tab-label">{label}</span>
+      {active && <div className="tab-indicator" />}
+    </div>
+  );
+}
+
+
 function SidebarIcon({ icon, label, active, onClick }) {
   return (
-    <div
-      className={`sidebar-nav-item sidebar-glow w-full flex flex-col items-center justify-center p-4 border-l-4 relative transition-all duration-300 ${
-        active ? "border-cyan-tactical bg-cyan-tactical/5 text-cyan-tactical" : "border-transparent text-text-dim hover:text-white"
-      }`}
+    <div 
+      className={`sidebar-icon-wrap ${active ? 'active' : ''}`}
       onClick={onClick}
-      title={label}
     >
-      <div className="text-3xl mb-2 group-hover:scale-110 transition-transform relative">
+      {active && <div className="sidebar-icon-active-bar" />}
+      <div className="text-xl flex-shrink-0 w-6 flex justify-center">
         {icon}
-        <div
-          className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(0,212,255,0.3) 0%, transparent 70%)",
-          }}
-        />
       </div>
-      <span className="text-[9px] font-black tracking-[0.3em] uppercase font-heading">
-        {label}
-      </span>
+      <span className="sidebar-label">{label}</span>
     </div>
   );
 }

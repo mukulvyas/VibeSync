@@ -569,13 +569,13 @@ export default function VibeMap({
             {attendeeMode ? tooltip.label.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()) : tooltip.label.replace('_', ' ')}
           </div>
           <div className="flex items-baseline gap-2">
-            <span className={`text-2xl font-black ${attendeeMode && tooltip.capacity > 85 ? 'text-red-400' : attendeeMode ? 'text-[#F59E0B]' : 'text-cyan-tactical'}`}>
+            <span className={`text-2xl font-black font-data ${attendeeMode && tooltip.capacity > 85 ? 'text-red-400' : attendeeMode ? 'text-[#F59E0B]' : 'text-cyan-tactical'}`}>
               {tooltip.capacity}%
             </span>
             <span className="text-[10px] font-bold text-text-dim uppercase tracking-widest">{attendeeMode ? 'Full' : 'Cap'}</span>
           </div>
           <div className="text-[10px] text-text-dim mt-2 font-medium">
-             Est. wait: <span className="text-white font-bold">{Math.round(tooltip.capacity / 10)} min</span>
+             Est. wait: <span className="text-white font-bold font-data">{Math.round(tooltip.capacity / 10)} min</span>
           </div>
         </div>
       )}

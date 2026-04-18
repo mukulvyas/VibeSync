@@ -1,32 +1,37 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Mission Control Design System ────────────────── */
+/* ── VibeSync Design System [Hackathon Overhaul] ── */
 :root {
-  --bg-space: #0a0e1a;
-  --bg-panel: #1c2333;
-  --bg-card: #1c2333;
-  --cyan-tactical: #00d4ff;
-  --gold-accent: #f59e0b; /* Attendee Primary */
-  --bg-attendee: #111827;
-  --ios-blue: #007aff;
-  --amber-tactical: #ffa502;
-  --red-tactical: #ff4757;
-  --green-tactical: #2ed573;
-  --magenta-tactical: #d946ef;
-  --text-primary: #f0f6fc;
-  --text-dim: #8b949e;
-  --border-dim: rgba(0, 212, 255, 0.12);
-  --border-active: rgba(0, 212, 255, 0.4);
-}
+  --bg-primary: #060B14;
+  --bg-card: #0E1623;
+  --bg-elevated: #162030;
+  --border: rgba(99, 179, 237, 0.12);
+  --accent-primary: #3B82F6;
+  --accent-glow: #60A5FA;
+  --accent-gold: #F59E0B;
+  --accent-red: #EF4444;
+  --accent-green: #10B981;
+  --text-primary: #F0F4FF;
+  --text-secondary: #8BA3C4;
+  --text-data: #E2E8F0;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-data: 'Space Mono', monospace;
 
-.theme-attendee {
-  --bg-space: #111827;
-  --bg-panel: #1f2937;
-  --cyan-tactical: #f59e0b; /* Gold Accent */
+  /* Legacy Mapping for compatibility */
+  --bg-space: var(--bg-primary);
+  --bg-panel: var(--bg-elevated);
+  /* --bg-card: already correctly named */
+  --cyan-tactical: var(--accent-primary);
+  --amber-tactical: var(--accent-gold);
+  --gold-accent: var(--accent-gold);
+  --red-tactical: var(--accent-red);
+  --green-tactical: var(--accent-green);
+  --text-dim: var(--text-secondary);
+  --border-dim: var(--border);
+  --ios-blue: var(--accent-primary);
 }
 
 * {
@@ -36,16 +41,37 @@
 }
 
 body {
-  font-family: "Inter", "JetBrains Mono", sans-serif;
-  background-color: var(--bg-space);
-  background-image: 
-    radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 80%),
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 40px 40px, 40px 40px;
+  font-family: var(--font-heading);
+  background-color: var(--bg-primary);
+  background-image: radial-gradient(
+    ellipse at 20% 50%, 
+    rgba(59, 130, 246, 0.04) 0%, 
+    transparent 60%
+  ), radial-gradient(
+    ellipse at 80% 20%, 
+    rgba(245, 158, 11, 0.03) 0%, 
+    transparent 50%
+  );
+  background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+.font-data {
+  font-family: var(--font-data) !important;
+  color: var(--text-data);
+}
+
+/* Ensure numbers/metrics/statuses consistently use data font */
+.tabular-nums,
+time,
+[data-metric],
+[data-status],
+.metric-value,
+.status-value {
+  font-family: var(--font-data);
+  color: var(--text-data);
 }
 
 /* ── Superiority Overhaul Stylings ────────────────── */
@@ -60,11 +86,11 @@ body {
   }
 
   .text-glow-cyan {
-    text-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+    text-shadow: 0 0 15px color-mix(in srgb, var(--accent-glow) 55%, transparent);
   }
 
   .shadow-tactical {
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0, 210, 255, 0.03);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 40px color-mix(in srgb, var(--accent-glow) 20%, transparent);
   }
 }
 
@@ -366,4 +392,322 @@ body {
   background: var(--gold-accent);
   border-radius: 50%;
 }
+
+/* ── Mobile Simulation & App UI ────────────────── */
+.mobile-mockup-bg {
+  background-color: #0A0A0A;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+}
+
+.phone-frame {
+  width: 390px;
+  height: 844px;
+  background: var(--bg-primary);
+  border-radius: 54px;
+  border: 12px solid #1A1A1A;
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-status-bar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px 0;
+  background: transparent;
+  z-index: 50;
+}
+
+.bottom-tabs {
+  height: 84px;
+  background: rgba(14, 22, 35, 0.8);
+  backdrop-filter: blur(24px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: 20px;
+  z-index: 50;
+}
+
+.tab-item {
+  @apply flex flex-col items-center justify-center gap-1 transition-all duration-300 opacity-50 cursor-pointer;
+  color: var(--text-primary);
+}
+
+.tab-item.active {
+  @apply opacity-100;
+  color: var(--accent-primary);
+}
+
+.tab-icon {
+  @apply text-xl mb-0.5;
+}
+
+.tab-label {
+  @apply text-[10px] font-bold uppercase tracking-widest;
+}
+
+.tab-indicator {
+  width: 16px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: 99px;
+  box-shadow: 0 0 10px var(--accent-primary);
+  position: absolute;
+  bottom: 12px;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0 20px 0;
+}
+
+/* Hide scrollbars for mobile feel */
+.app-content::-webkit-scrollbar {
+  display: none;
+}
+.app-content {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── iOS Premium Mobile Redesign ── */
+@keyframes audioPulse {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes livePulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.animate-audio { animation: audioPulse 0.6s infinite ease-in-out; }
+.animate-blink { animation: blink 1s infinite steps(1); }
+.animate-pulse-red { animation: livePulse 2s infinite; }
+
+.card-route-gradient {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-route-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #3B82F6, #8B5CF6);
+  border-radius: 4px 0 0 4px;
+}
+
+.pill-live {
+  @apply flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-[9px] font-black text-red-500 uppercase tracking-widest;
+}
+
+.badge-priority {
+  @apply bg-[#F59E0B] text-black px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold;
+}
+
+.badge-wait-orange {
+  @apply bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-500/10;
+}
+
+.badge-wait-green {
+  @apply bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full text-[10px] font-bold border border-green-500/10;
+}
+
+.circle-icon-blue {
+  @apply w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-xl border border-blue-500/5;
+}
+
+.circle-icon-cyan {
+  @apply w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center text-xl border border-cyan-500/5;
+}
+
+.nav-arrow-slide {
+  @apply inline-block transition-transform duration-300;
+}
+
+.group:hover .nav-arrow-slide {
+  transform: translateX(6px);
+}
+
+
+/* ── Ops UI Refinements ────────────────── */
+.ops-sidebar-rail {
+  width: 48px;
+  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: #0d1117;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.ops-sidebar-rail:hover {
+  width: 180px;
+}
+
+.sidebar-label {
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+  white-space: nowrap;
+  pointer-events: none;
+  @apply text-[10px] font-black uppercase tracking-widest;
+}
+
+.ops-sidebar-rail:hover .sidebar-label {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.segmented-control {
+  background: #0E1623;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  gap: 4px;
+  width: 160px;
+}
+
+.segment-btn {
+  @apply flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all duration-200 rounded-md flex items-center justify-center;
+  color: var(--text-secondary);
+}
+
+.segment-btn.active {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.status-pill-badge {
+  @apply flex items-center gap-2 px-3 py-1.5 rounded-full font-data text-[9px] font-bold;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10B981;
+}
+
+.sidebar-icon-wrap {
+  @apply flex items-center gap-4 w-full px-3.5 py-4 transition-colors relative cursor-pointer;
+  color: var(--text-secondary);
+}
+
+.sidebar-icon-wrap:hover {
+  color: white;
+}
+
+.sidebar-icon-wrap.active {
+  color: var(--accent-primary);
+}
+
+.sidebar-icon-active-bar {
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  background: var(--accent-primary);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 10px var(--accent-primary);
+}
+
+.sidebar-logo-mark {
+  @apply mt-auto border-t border-white/5 p-4 flex items-center justify-center;
+}
+
+/* ── AI Killer Feature Styles ── */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.fab-ai {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  position: relative;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 500;
+  border: none;
+  cursor: pointer;
+}
+
+.fab-ai:active {
+  transform: scale(0.92);
+}
+
+.fab-ai::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pulse-ring 2s infinite cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  z-index: -1;
+}
+
+.glass-drawer {
+  background: rgba(14, 22, 35, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border-top: 1px solid rgba(99, 179, 237, 0.2) !important;
+  border-radius: 24px 24px 0 0 !important;
+  box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.confidence-bar {
+  @apply h-1.5 bg-white/5 rounded-full overflow-hidden flex;
+}
+
+.confidence-fill {
+  @apply h-full;
+  background-color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--accent-primary);
+}
+
+/* Color Utilities to support Tailwind-like syntax for our variables */
+.text-accent-primary { color: var(--accent-primary); }
+.text-accent-gold { color: var(--accent-gold); }
+.text-accent-red { color: var(--accent-red); }
+.text-accent-green { color: var(--accent-green); }
+.bg-accent-primary { background-color: var(--accent-primary); }
+.bg-accent-gold { background-color: var(--accent-gold); }
+.bg-accent-red { background-color: var(--accent-red); }
+.bg-accent-green { background-color: var(--accent-green); }
+
+
+
 
