@@ -29,10 +29,10 @@ export default function AttendeeFocus({ onAction, proximities, attendeeOnly, foc
         <FocusCard 
           type="ROUTE"
           icon="💺" 
-          title="Your Route" 
-          sub="SEC-104 Entrance"
+          title="Exit Route" 
+          sub="From Seat 43"
           status="Priority"
-          metrics={{ primary: 'Row 12', secondary: 'Gate N2' }}
+          metrics={{ primary: 'Row 12', secondary: 'Gate S2' }}
           onClick={() => onAction('GUIDE_SEAT')}
           actionText="Start Navigation"
         />

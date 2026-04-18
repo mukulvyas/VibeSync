@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * VibeMap — High-Fidelity Tactical 3D Digital Twin
@@ -18,11 +18,18 @@ const STAND_META = {
   SOUTH: { name: "South Fans", gate: "S2", label: "SOUTH FANS" },
 };
 
-const HEATMAP_COLORS = {
-  NORTH: "rgba(239, 68, 68, 0.5)",
-  EAST: "rgba(245, 158, 11, 0.35)",
-  WEST: "rgba(245, 158, 11, 0.4)",
-  SOUTH: "rgba(59, 130, 246, 0.3)",
+const STAND_PATHS = {
+  NORTH: "M 250 220 A 280 220 0 0 1 750 220 L 700 300 A 210 150 0 0 0 300 300 Z",
+  SOUTH: "M 250 780 A 280 220 0 0 0 750 780 L 700 700 A 210 150 0 0 1 300 700 Z",
+  WEST: "M 210 300 A 240 200 0 0 0 210 700 L 300 660 A 170 130 0 0 1 300 340 Z",
+  EAST: "M 790 300 A 240 200 0 0 1 790 700 L 700 660 A 170 130 0 0 0 700 340 Z",
+};
+
+const getHeatColor = (pct) => {
+  if (pct >= 90) return "rgba(239, 68, 68, 0.65)";
+  if (pct >= 75) return "rgba(245, 158, 11, 0.55)";
+  if (pct >= 55) return "rgba(234, 179, 8, 0.4)";
+  return "rgba(59, 130, 246, 0.3)";
 };
 
 export default function VibeMap({
@@ -35,10 +42,13 @@ export default function VibeMap({
   userPos,
   incentives = [],
   showHeatmap = true,
+  lastEvent = null,
 }) {
   const containerRef = useRef(null);
   const [hoveredStand, setHoveredStand] = useState("");
   const [tooltip, setTooltip] = useState(null);
+  const [isFlashing, setIsFlashing] = useState(false);
+  const flashTimeoutRef = useRef(null);
 
   const sectionStats = useMemo(() => {
     if (standCapacities) {
@@ -103,6 +113,28 @@ export default function VibeMap({
 
   const youMarker = useMemo(() => ({ x: 500, y: 760 }), []);
 
+  useEffect(() => {
+    if (lastEvent !== "SIX" && lastEvent !== "WICKET") return;
+    setIsFlashing(true);
+    clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = setTimeout(() => {
+      setIsFlashing(false);
+    }, 600);
+  }, [lastEvent]);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(flashTimeoutRef.current);
+    };
+  }, []);
+
+  const getWaitTime = (capacity) => {
+    if (capacity >= 90) return "10-14 min";
+    if (capacity >= 75) return "6-9 min";
+    if (capacity >= 55) return "3-5 min";
+    return "1-2 min";
+  };
+
   const showStandTooltip = (stand, event) => {
     const bounds = containerRef.current?.getBoundingClientRect();
     if (!bounds) return;
@@ -128,7 +160,7 @@ export default function VibeMap({
 
       <svg
         viewBox="0 0 1000 1000"
-        className="w-full h-full max-w-[850px] drop-shadow-[0_0_100px_rgba(0,0,0,0.8)] transition-transform duration-700"
+        className={`w-full h-full max-w-[850px] drop-shadow-[0_0_100px_rgba(0,0,0,0.8)] transition-transform duration-700 ${isFlashing ? "stadium-flash" : ""}`}
       >
         <defs>
           <radialGradient id="fieldGradient" cx="50%" cy="50%" r="65%">
@@ -141,12 +173,16 @@ export default function VibeMap({
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
 
-          {Object.entries(HEATMAP_COLORS).map(([stand, color]) => (
+          {Object.entries(STAND_PATHS).map(([stand]) => {
+            const capacity = sectionStats[stand]?.capacity ?? 0;
+            const color = getHeatColor(capacity);
+            return (
             <radialGradient id={`heat-${stand}`} key={stand}>
               <stop offset="0%" stopColor={color} stopOpacity="1" />
               <stop offset="100%" stopColor={color} stopOpacity="0" />
             </radialGradient>
-          ))}
+            );
+          })}
 
           <linearGradient id="pitchGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#c9a36e" />
@@ -186,10 +222,10 @@ export default function VibeMap({
         />
 
         {/* Curved stand shells */}
-        <path d="M 250 220 A 280 220 0 0 1 750 220 L 700 300 A 210 150 0 0 0 300 300 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
-        <path d="M 250 780 A 280 220 0 0 0 750 780 L 700 700 A 210 150 0 0 1 300 700 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
-        <path d="M 210 300 A 240 200 0 0 0 210 700 L 300 660 A 170 130 0 0 1 300 340 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
-        <path d="M 790 300 A 240 200 0 0 1 790 700 L 700 660 A 170 130 0 0 0 700 340 Z" fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+        <path d={STAND_PATHS.NORTH} fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+        <path d={STAND_PATHS.SOUTH} fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+        <path d={STAND_PATHS.WEST} fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
+        <path d={STAND_PATHS.EAST} fill="rgba(30,41,59,0.9)" stroke="rgba(255,255,255,0.07)" />
 
         {/* Stand interactive hit regions */}
         <g
@@ -203,7 +239,11 @@ export default function VibeMap({
           onClick={() => onCellClick?.("NORTH")}
           style={{ opacity: hoveredStand && hoveredStand !== "NORTH" ? 0.85 : 1 }}
         >
-          <path d="M 250 220 A 280 220 0 0 1 750 220 L 700 300 A 210 150 0 0 0 300 300 Z" fill="rgba(59,130,246,0.06)" />
+          <path
+            d={STAND_PATHS.NORTH}
+            fill={showHeatmap ? getHeatColor(sectionStats.NORTH?.capacity ?? 0) : "rgba(59,130,246,0.06)"}
+            style={{ transition: "fill 1s ease" }}
+          />
           <Label x={500} y={248} text={STAND_META.NORTH.label} />
         </g>
         <g
@@ -217,7 +257,11 @@ export default function VibeMap({
           onClick={() => onCellClick?.("SOUTH")}
           style={{ opacity: hoveredStand && hoveredStand !== "SOUTH" ? 0.85 : 1 }}
         >
-          <path d="M 250 780 A 280 220 0 0 0 750 780 L 700 700 A 210 150 0 0 1 300 700 Z" fill="rgba(59,130,246,0.06)" />
+          <path
+            d={STAND_PATHS.SOUTH}
+            fill={showHeatmap ? getHeatColor(sectionStats.SOUTH?.capacity ?? 0) : "rgba(59,130,246,0.06)"}
+            style={{ transition: "fill 1s ease" }}
+          />
           <Label x={500} y={754} text={STAND_META.SOUTH.label} />
         </g>
         <g
@@ -231,7 +275,11 @@ export default function VibeMap({
           onClick={() => onCellClick?.("WEST")}
           style={{ opacity: hoveredStand && hoveredStand !== "WEST" ? 0.85 : 1 }}
         >
-          <path d="M 210 300 A 240 200 0 0 0 210 700 L 300 660 A 170 130 0 0 1 300 340 Z" fill="rgba(59,130,246,0.06)" />
+          <path
+            d={STAND_PATHS.WEST}
+            fill={showHeatmap ? getHeatColor(sectionStats.WEST?.capacity ?? 0) : "rgba(59,130,246,0.06)"}
+            style={{ transition: "fill 1s ease" }}
+          />
           <Label x={252} y={500} text={STAND_META.WEST.label} rotate={-90} />
         </g>
         <g
@@ -245,7 +293,11 @@ export default function VibeMap({
           onClick={() => onCellClick?.("EAST")}
           style={{ opacity: hoveredStand && hoveredStand !== "EAST" ? 0.85 : 1 }}
         >
-          <path d="M 790 300 A 240 200 0 0 1 790 700 L 700 660 A 170 130 0 0 0 700 340 Z" fill="rgba(59,130,246,0.06)" />
+          <path
+            d={STAND_PATHS.EAST}
+            fill={showHeatmap ? getHeatColor(sectionStats.EAST?.capacity ?? 0) : "rgba(59,130,246,0.06)"}
+            style={{ transition: "fill 1s ease" }}
+          />
           <Label x={748} y={500} text={STAND_META.EAST.label} rotate={90} />
         </g>
 
@@ -359,14 +411,23 @@ export default function VibeMap({
       {/* Tooltip Card */}
       {tooltip && (
         <div
-          className={`absolute z-50 p-5 rounded-2xl shadow-2xl pointer-events-none transform -translate-x-1/2 -translate-y-[110%] animate-in fade-in zoom-in duration-200 border border-white/10 ${attendeeMode ? 'bg-[#1F2937] text-white' : 'glass-tactical'}`}
+          className="absolute pointer-events-none"
           style={{
-            left: tooltip.x,
-            top: tooltip.y,
+            left: tooltip.x + 12,
+            top: tooltip.y + 12,
+            position: "absolute",
+            background: "rgba(6,11,20,0.95)",
+            border: "1px solid rgba(99,179,237,0.3)",
+            borderRadius: 8,
+            padding: "8px 12px",
+            zIndex: 999,
           }}
         >
-          <div className={`font-bold mb-2 pb-1 border-b border-white/10 ${attendeeMode ? 'text-sm' : 'text-xs uppercase tracking-widest text-white'}`}>
-            {tooltip.name} · {tooltip.capacity}% capacity · Gate: {tooltip.gate}
+          <div style={{ fontWeight: 700 }}>{tooltip.name}</div>
+          <div style={{ color: "#F59E0B" }}>{tooltip.capacity}% capacity</div>
+          <div style={{ color: "#8BA3C4" }}>Gate: {tooltip.gate}</div>
+          <div style={{ color: "#8BA3C4" }}>
+            Est. wait: {getWaitTime(tooltip.capacity)}
           </div>
         </div>
       )}

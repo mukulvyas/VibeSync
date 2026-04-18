@@ -37,22 +37,13 @@ const STREAM_MESSAGES = [
 
 export default function AgentLog({ logs = [] }) {
   const scrollRef = useRef(null);
-  const [visibleCount, setVisibleCount] = useState(0);
-
-  useEffect(() => {
-    setVisibleCount(0);
-    const timers = STREAM_MESSAGES.map((_, index) =>
-      setTimeout(() => setVisibleCount((prev) => Math.max(prev, index + 1)), index * 500),
-    );
-
-    return () => timers.forEach(clearTimeout);
-  }, []);
+  const [visibleCount, setVisibleCount] = useState(STREAM_MESSAGES.length);
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop = 0;
     }
-  }, [visibleCount]);
+  }, [logs, visibleCount]);
 
   const renderedLogs = logs.length > 0 ? logs : STREAM_MESSAGES.slice(0, visibleCount);
 
@@ -77,9 +68,12 @@ export default function AgentLog({ logs = [] }) {
             <p className="text-text-dim text-[10px] tracking-[0.1em] font-heading">Streaming agent telemetry...</p>
           </div>
         ) : (
-          renderedLogs.map((log) => {
+          renderedLogs.map((log, index) => {
             return (
-              <div key={log.id} className="flex items-start gap-4 group">
+              <div
+                key={log.id}
+                className={`flex items-start gap-4 group agent-log-entry ${index >= 4 ? "agent-log-entry-fade" : ""}`}
+              >
                 <div
                   className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold shadow-2xl transition-transform hover:scale-110"
                   style={{ backgroundColor: log.avatar }}
