@@ -6,44 +6,56 @@ import React from 'react';
  */
 export default function AtmosphereMetrics({ noise, aqi, wifi }) {
   const getAQIStatus = (val) => {
-    if (val < 50) return { label: 'EXCELLENT', color: 'var(--cyan-tactical)' };
-    if (val < 100) return { label: 'GOOD', color: 'var(--amber-tactical)' };
-    return { label: 'MODERATE', color: 'var(--amber-tactical)' };
+    if (val < 50) return { label: 'Excellent', color: '#2ed573' };
+    if (val < 100) return { label: 'Good', color: '#f59e0b' };
+    return { label: 'Moderate', color: '#f59e0b' };
   };
 
   const aqiInfo = getAQIStatus(aqi);
 
   return (
-    <div className="space-y-6">
-      <Section label="LIVE ATMOSPHERE" />
+    <div className="space-y-8">
+      <Section label="Live Atmosphere" />
       
-      <div className="space-y-4">
-        {/* Temperature placeholder or static for now */}
-        <div className="flex justify-between items-end">
-           <span className="text-4xl font-rajdhani font-bold text-white tracking-widest">72°F</span>
-           <span className="text-[10px] text-text-dim mb-1">Wind: 4mph N</span>
+      <div className="space-y-6">
+        {/* Equalizer for Noise */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center text-[10px] font-bold text-text-dim uppercase tracking-widest px-1">
+             <span>Noise Level</span>
+             <span className="text-white bg-[#374151] px-2 py-0.5 rounded-full font-data">{noise} dB</span>
+          </div>
+          <div className="flex items-end gap-1.5 h-12 px-2 bg-black/20 rounded-xl items-center justify-center">
+            <div className="w-2 h-4 bg-[#F59E0B] rounded-full animate-bar-1" />
+            <div className="w-2 h-8 bg-[#F59E0B] rounded-full animate-bar-2" />
+            <div className="w-2 h-6 bg-[#F59E0B] rounded-full animate-bar-3" />
+            <div className="w-2 h-10 bg-[#F59E0B] rounded-full animate-bar-4" />
+            <div className="w-2 h-5 bg-[#F59E0B] rounded-full animate-bar-2" />
+            <div className="w-2 h-9 bg-[#F59E0B] rounded-full animate-bar-1" />
+          </div>
         </div>
 
-        <MetricRow 
-          label="NOISE LEVEL" 
-          value={`${noise} dB`} 
-          subLabel={noise > 85 ? 'PEAK' : 'OPTIMAL'} 
-          color={noise > 85 ? 'var(--amber-tactical)' : 'var(--cyan-tactical)'} 
-        />
+        {/* AQI Pill */}
+        <div className="flex justify-between items-center p-4 bg-[#1F2937] rounded-2xl border border-white/5 shadow-lg">
+          <span className="text-xs font-bold text-white">Air Quality</span>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: aqiInfo.color }} />
+            <span className="text-xs font-bold" style={{ color: aqiInfo.color }}>{aqiInfo.label}</span>
+          </div>
+        </div>
 
-        <MetricRow 
-          label="AIR QUALITY" 
-          value={aqiInfo.label} 
-          subLabel={`${aqi} AQI`} 
-          color={aqiInfo.color} 
-        />
-
-        <MetricRow 
-          label="WIFI MESH" 
-          value="OPTIMAL" 
-          subLabel={`${wifi} Mbps`} 
-          color="var(--cyan-tactical)" 
-        />
+        {/* Signal Bars for WiFi */}
+        <div className="flex justify-between items-center p-4 bg-[#1F2937] rounded-2xl border border-white/5 shadow-lg">
+          <span className="text-xs font-bold text-white">Guest WiFi</span>
+          <div className="flex items-end gap-1 h-3 pointer-events-none">
+            {[1, 2, 3, 4].map((i) => (
+              <div 
+                key={i} 
+                className={`w-1 rounded-sm ${i <= 3 ? 'bg-green-400' : 'bg-white/10'}`} 
+                style={{ height: `${i * 25}%` }} 
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -51,24 +63,9 @@ export default function AtmosphereMetrics({ noise, aqi, wifi }) {
 
 function Section({ label }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-1.5 h-1.5 bg-cyan-tactical rotate-45" />
-      <span className="text-[11px] font-bold tracking-[0.2em] text-text-dim uppercase">{label}</span>
-    </div>
-  );
-}
-
-function MetricRow({ label, value, subLabel, color }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-[9px] font-mono tracking-widest text-text-dim uppercase">{label}</p>
-      <div className="flex justify-between items-center group">
-        <span className="text-sm font-bold tracking-wider text-white group-hover:text-cyan-tactical transition-colors">{value}</span>
-        <span className="text-[9px] font-mono" style={{ color }}>{subLabel}</span>
-      </div>
-      <div className="h-[2px] w-full bg-bg-panel">
-         <div className="h-full bg-cyan-tactical opacity-20" style={{ width: '100%' }} />
-      </div>
+    <div className="flex items-center gap-2 px-2">
+      <div className="w-1 h-3 bg-[#F59E0B] rounded-full" />
+      <span className="text-[11px] font-black tracking-widest text-[#F59E0B] uppercase font-heading">{label}</span>
     </div>
   );
 }
