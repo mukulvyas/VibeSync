@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 websockets
-google-generativeai
+google-genai>=1.0.0
+python-dotenv
 pytest
 httpx

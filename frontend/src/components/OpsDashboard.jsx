@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import VibeMap from "./VibeMap";
 import AgentLog from "./AgentLog";
-import AIInsightDrawer from "./AIInsightDrawer";
 
 export default function OpsDashboard({
   history,
@@ -20,10 +19,12 @@ export default function OpsDashboard({
   isInsightOpen,
   setIsInsightOpen,
   overrideToast,
+  isOverrideActive,
   onOverrideFlow,
   onRunScenario,
   onResolveAlert,
   renderAdminToggle,
+  matchState,
 }) {
   const isScenarioOpen = scenarioMenuOpen;
 
@@ -44,9 +45,9 @@ export default function OpsDashboard({
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {renderAdminToggle()}
-          <div className="status-pill-badge">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_10px_#10b981] animate-pulse" />
-            SYSTEM ONLINE
+          <div className={`status-pill-badge ${isOverrideActive ? 'border-red-500/50 text-red-500' : ''}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${isOverrideActive ? 'bg-red-500 shadow-[0_0_10px_#ef4444]' : 'bg-green-500 shadow-[0_0_10px_#10b981]'} animate-pulse`} />
+            {isOverrideActive ? 'MANUAL CONTROL' : 'SYSTEM ONLINE'}
           </div>
         </div>
       </header>
@@ -67,17 +68,17 @@ export default function OpsDashboard({
             </div>
             <div className="space-y-8">
               <h2 className="tech-header text-cyan-tactical border-b border-white/5 pb-2 font-heading">System Vitality</h2>
-              <HealthBar label="Neural Engine" value={88} max={100} unit="%" color="#00D4FF" />
+              <HealthBar label="Neural Engine" value={isOverrideActive ? 0 : 88} max={100} unit={isOverrideActive ? "MANUAL" : "%"} color={isOverrideActive ? "#EF4444" : "#00D4FF"} />
               <HealthBar label="Data Latency" value={14} max={100} unit="ms" color="#FFA502" />
               <HealthBar label="Network Uplink" value={98} max={100} unit="%" color="#00D4FF" />
             </div>
             <button
               type="button"
               onClick={onOverrideFlow}
-              className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-[0.16em] text-white shadow-[0_4px_20px_rgba(239,68,68,0.4)]"
-              style={{ background: "linear-gradient(135deg, #EF4444, #DC2626)" }}
+              className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-[0.16em] text-white shadow-[0_4px_20px_rgba(239,68,68,0.4)] transition-all active:scale-95"
+              style={{ background: isOverrideActive ? "linear-gradient(135deg, #4B5563, #374151)" : "linear-gradient(135deg, #EF4444, #DC2626)" }}
             >
-              ⚠ Override AI Flow
+              {isOverrideActive ? "▶ Resume AI Flow" : "⚠ Override AI Flow"}
             </button>
             <div className="ops-scenario-trigger-wrap">
               <button
@@ -198,15 +199,6 @@ export default function OpsDashboard({
         </aside>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setIsInsightOpen(true)}
-        className="fixed bottom-24 right-10 z-[10000] w-16 h-16 rounded-full bg-cyan-tactical flex items-center justify-center text-black text-2xl shadow-[0_0_30px_rgba(0,212,255,0.5)] animate-fab-pulse"
-        aria-label="Open AI insights"
-      >
-        <span aria-hidden>✦</span>
-      </button>
-      <AIInsightDrawer isOpen={isInsightOpen} onClose={() => setIsInsightOpen(false)} />
       <OverrideToast visible={overrideToast} />
       <OpsToastStack toasts={opsToasts} />
     </div>

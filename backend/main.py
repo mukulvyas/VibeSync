@@ -3,6 +3,13 @@ VibeSync — Agentic AI Stadium Companion
 FastAPI backend: routes, WebSocket, background simulation, and scenario injection.
 """
 
+# Load .env file if present (local dev). On Cloud Run, env vars are injected directly.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed; env vars must be set externally
+
 import asyncio
 import json
 import os
@@ -15,12 +22,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import (
     PathRequest, PathResponse, SOSRequest, SOSResponse,
     JoinQueueRequest, JoinQueueResponse, VenueState, StaffAlert,
+    ChatRequest, ChatResponse,
 )
+from typing import Any, Optional
+from pydantic import BaseModel
+
+class ConciergeMessage(BaseModel):
+    message: str
+    venue_state: dict = {}
+    history: list = []
+
+class AgentInsightRequest(BaseModel):
+    venue_state: dict = {}
+    event_type: Optional[str] = None
+
+class StadiumUpdateRequest(BaseModel):
+    venue_state: dict = {}
+    last_event: Optional[str] = None
+    history: list = []
+    last_category: Optional[str] = None
 from venue import VenueSimulator
 from agents.flow_agent import FlowAgent
 from agents.sync_agent import SyncAgent
 from agents.guardian_agent import GuardianAgent
-from agents.gemini_agent import get_gemini_ops_insight
+from agents.gemini_agent import (
+    get_concierge_response, 
+    get_agent_insight,
+    get_stadium_update
+)
 from line_buddy import LineBuddy
 
 # ── Global State ───────────────────────────────────────
@@ -117,9 +146,26 @@ async def generate_agent_thoughts():
 
     # Optional Gemini intel (requires GEMINI_API_KEY and google-generativeai)
     if venue.tick_count > 0 and venue.tick_count % 15 == 0:
-        insight = await asyncio.to_thread(get_gemini_ops_insight, venue)
-        if insight:
-            add_agent_log("GEMINI_INTEL", f">> {insight}", "info")
+        # Calculate stand capacities for Gemini
+        stand_densities = {"north": [], "south": [], "east": [], "west": []}
+        for r in range(venue.ROWS):
+            for c in range(venue.COLS):
+                cell = venue.grid[r][c]
+                if r <= 2: stand_densities["north"].append(cell["density"])
+                elif r >= 7: stand_densities["south"].append(cell["density"])
+                elif c <= 2: stand_densities["west"].append(cell["density"])
+                else: stand_densities["east"].append(cell["density"])
+        
+        venue_state = {
+            "north": int(sum(stand_densities["north"])/len(stand_densities["north"]) * 100),
+            "south": int(sum(stand_densities["south"])/len(stand_densities["south"]) * 100),
+            "east": int(sum(stand_densities["east"])/len(stand_densities["east"]) * 100),
+            "west": int(sum(stand_densities["west"])/len(stand_densities["west"]) * 100),
+            "noise_db": venue.noise_level_db
+        }
+        insight_result = await get_agent_insight(venue_state)
+        if insight_result and insight_result.get("message"):
+            add_agent_log(insight_result["agent"], f">> {insight_result['message']}", "info")
 
 
 def _zone_name(r: int, c: int) -> str:
@@ -186,7 +232,11 @@ _allow_origins = ["*"] if _cors_origins == "*" else [o.strip() for o in _cors_or
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allow_origins or ["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://vibesync-228890906497.europe-west1.run.app",
+        "*"  
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -301,6 +351,41 @@ async def join_queue(req: JoinQueueRequest):
 async def queue_stats():
     """Return current Line-Buddy queue statistics."""
     return line_buddy.get_queue_stats()
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_api(req: ChatRequest):
+    """Conversational AI for attendees (Legacy endpoint updated)."""
+    reply = await get_concierge_response(req.message, req.context)
+    return ChatResponse(reply=reply or "I'm offline right now, but standard ops are nominal!")
+
+@app.post("/concierge")
+async def concierge(data: ConciergeMessage):
+    response = await get_concierge_response(
+        data.message, 
+        data.venue_state,
+        history=data.history
+    )
+    return {"response": response}
+
+@app.post("/agent-insight")  
+async def agent_insight(data: AgentInsightRequest):
+    result = await get_agent_insight(
+        data.venue_state,
+        data.event_type
+    )
+    return result
+
+
+@app.post("/stadium-update")
+async def stadium_update_api(data: StadiumUpdateRequest):
+    result = await get_stadium_update(
+        data.venue_state,
+        data.last_event,
+        data.history,
+        data.last_category
+    )
+    return result
 
 
 # ── Scenario Injection Endpoints ───────────────────────

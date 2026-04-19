@@ -379,31 +379,6 @@ export default function VibeMap({
           />
         )}
 
-        {/* ── YOU Marker ── */}
-        {attendeeMode && (
-          <g transform={`translate(${youMarker.x}, ${youMarker.y})`}>
-            {/* Outer Pulse */}
-            <circle
-              r="18"
-              fill="rgba(59,130,246,0.25)"
-              className="animate-ping"
-            />
-            {/* Inner Glowing Dot */}
-            <circle
-              r="8"
-              fill="#3b82f6"
-              stroke="white"
-              strokeWidth="2"
-              className="blue-dot-pulse shadow-2xl"
-            />
-            
-            {/* Floating Handle Label */}
-            <g transform="translate(0, -35)">
-               <rect x="-40" y="-12" width="80" height="24" rx="12" fill="white" className="shadow-2xl" />
-               <text textAnchor="middle" y="5" fill="#111827" fontSize="10" fontWeight="800">YOU</text>
-            </g>
-          </g>
-        )}
       </svg>
 
       {/* Map Legend (Hidden in attendeeMode as it is handled by the Shell) */}

@@ -3,6 +3,7 @@ import AttendeeFocus from "./AttendeeFocus";
 import AtmosphereMetrics from "./AtmosphereMetrics";
 import AgentLog from "./AgentLog";
 import AIInsightDrawer from "./AIInsightDrawer";
+import StadiumUpdates from "./StadiumUpdates";
 
 export default function AttendeeShell({
   mobileTab,
@@ -107,7 +108,7 @@ export default function AttendeeShell({
                 />
                 
                 {/* Repositioned Legend Card */}
-                <div className="absolute bottom-[90px] right-[70px] z-10 w-[180px] p-4 rounded-[20px] bg-[#1F2937]/90 border border-white/10 shadow-2xl backdrop-blur-md">
+                <div className="absolute top-[60px] right-[20px] z-[50] w-[180px] p-4 rounded-[20px] bg-[#1F2937]/90 border border-white/10 shadow-2xl backdrop-blur-md scale-90 origin-top-right">
                    <h4 className="text-[8px] font-black tracking-widest uppercase mb-2 text-[#F59E0B]">Live Crowd Flow</h4>
                    <div className="space-y-2">
                      <div className="flex items-center gap-3">
@@ -137,14 +138,17 @@ export default function AttendeeShell({
 
           {mobileTab === "ALERTS" && (
             <div className="py-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-2xl font-black text-white px-2">Safety & Alerts</h2>
-              <AgentLog logs={liveAgentLogs} />
-              <div className="p-6 glass-tactical rounded-3xl border-l-4 border-accent-gold">
-                <p className="text-xs font-bold text-accent-gold mb-1">Fan Notice</p>
-                <p className="text-[11px] text-white/70 leading-relaxed">
-                  Concourse B is seeing high traffic. AI Suggests using North Exit for faster departure.
-                </p>
-              </div>
+              <h2 className="text-2xl font-black text-white px-2">Updates</h2>
+              <StadiumUpdates 
+                venueState={{
+                  north: matchState.capacity.north,
+                  south: matchState.capacity.south,
+                  east: matchState.capacity.east,
+                  west: matchState.capacity.west,
+                  noise_db: matchState.noise_db
+                }}
+                lastEvent={lastEvent}
+              />
             </div>
           )}
         </div>
@@ -159,7 +163,12 @@ export default function AttendeeShell({
         </div>
       </nav>
 
-      <AIInsightDrawer isOpen={isInsightOpen} onClose={() => setIsInsightOpen(false)} />
+      <AIInsightDrawer 
+        isOpen={isInsightOpen} 
+        onClose={() => setIsInsightOpen(false)} 
+        attendeeMode={true}
+        matchState={matchState}
+      />
       {navGuide && <NavigationGuideModal guide={navGuide} onClose={() => setNavGuide(null)} />}
 
       <button

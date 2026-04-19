@@ -226,10 +226,31 @@ export default function App() {
   const [opsToasts, setOpsToasts] = useState([]);
   const [activeAlerts, setActiveAlerts] = useState(() => [
     {
-      id: "alert-gate-north",
+      id: "alert-1",
       title: "Gate North · Congestion Alert",
       detail: "North stand capacity threshold reached",
       time: "17:26:11",
+      status: "critical",
+    },
+    {
+      id: "alert-2",
+      title: "West Concourse · Thermal Warning",
+      detail: "Temperature above optimal baseline",
+      time: "17:29:45",
+      status: "critical",
+    },
+    {
+      id: "alert-3",
+      title: "Zone C · Wait Time Escalation",
+      detail: "Food queue depth critically high",
+      time: "17:31:02",
+      status: "critical",
+    },
+    {
+      id: "alert-4",
+      title: "S1 Exit · Flow Disruption",
+      detail: "Minor bottleneck forming near stairwell",
+      time: "17:34:15",
       status: "critical",
     },
   ]);
@@ -390,7 +411,10 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
+  const [isOverrideActive, setIsOverrideActive] = useState(false);
+
   const handleOverrideFlow = () => {
+    setIsOverrideActive(prev => !prev);
     setOverrideToast(true);
     setTimeout(() => setOverrideToast(false), 2600);
   };
@@ -492,6 +516,7 @@ export default function App() {
   if (staffMode) {
     return (
       <OpsDashboard
+        matchState={matchState}
         history={history}
         standCapacities={standCapacities}
         path={path}
@@ -508,6 +533,7 @@ export default function App() {
         isInsightOpen={isInsightOpen}
         setIsInsightOpen={setIsInsightOpen}
         overrideToast={overrideToast}
+        isOverrideActive={isOverrideActive}
         onOverrideFlow={handleOverrideFlow}
         onRunScenario={handleRunScenario}
         onResolveAlert={handleResolveAlert}

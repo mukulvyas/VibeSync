@@ -52,3 +52,18 @@ export const joinQueue = (userId, fanInterest) =>
 
 /** GET queue stats */
 export const getQueueStats = () => request('/queue-stats');
+
+/** POST chat message to Gemini Concierge */
+export const chatWithAI = (message, venueState, history = []) =>
+  request('/concierge', {
+    method: 'POST',
+    body: JSON.stringify({ message, venue_state: venueState, history }),
+  });
+
+/** POST get operational agent insight */
+export const getAgentInsight = (venueState, eventType) =>
+  request('/agent-insight', {
+    method: 'POST',
+    body: JSON.stringify({ venue_state: venueState, event_type: eventType }),
+  });
+

@@ -552,6 +552,15 @@ time,
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideIn {
+  0% { transform: translateX(30px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @keyframes stadium-flash {
   0% { filter: brightness(1); }
   50% { filter: brightness(1.4); }

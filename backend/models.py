@@ -98,3 +98,11 @@ class JoinQueueResponse(BaseModel):
     fan_interest: str
     icebreaker: Optional[str] = None
     position_in_queue: Optional[int] = None
+
+# ── AI Chat ──────────────────────────────────────────
+class ChatRequest(BaseModel):
+    message: str
+    context: Optional[dict] = None
+
+class ChatResponse(BaseModel):
+    reply: str
