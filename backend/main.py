@@ -5,6 +5,7 @@ FastAPI backend: routes, WebSocket, background simulation, and scenario injectio
 
 import asyncio
 import json
+import os
 import random
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
@@ -212,8 +213,8 @@ def _build_venue_payload() -> dict:
 
 # ── REST Endpoints ─────────────────────────────────────
 
-@app.get("/")
-async def root():
+@app.get("/health")
+async def health():
     return {"app": "VibeSync", "status": "running", "tick": venue.tick_count}
 
 
@@ -363,7 +364,32 @@ async def venue_ws(websocket: WebSocket):
         ws_clients.discard(websocket)
 
 
+# ── Static frontend (Docker / Cloud Run) ───────────────
+DIST_DIR = os.environ.get("STATIC_DIST", "").strip()
+
+if DIST_DIR and os.path.isdir(DIST_DIR):
+    from fastapi.responses import FileResponse
+
+    @app.get("/")
+    async def root():
+        return FileResponse(os.path.join(DIST_DIR, "index.html"))
+
+    @app.get("/{full_path:path}")
+    async def spa(full_path: str):
+        candidate = os.path.join(DIST_DIR, full_path)
+        if os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(DIST_DIR, "index.html"))
+else:
+
+    @app.get("/")
+    async def root():
+        return {"app": "VibeSync", "status": "running", "tick": venue.tick_count}
+
+
 # ── Run ────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

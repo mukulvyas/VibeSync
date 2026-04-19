@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
-
-const API = 'http://localhost:8000';
+import { useState } from 'react';
+import { API_BASE } from '../utils/config.js';
 
 // Expose a global trigger for the match countdown full-surge call from App.jsx
 export function triggerFullSurgeGlobal() {
-  fetch(`${API}/scenario/full-surge`, { method: 'POST' }).catch(() => {});
+  fetch(`${API_BASE}/scenario/full-surge`, { method: 'POST' }).catch(() => {});
 }
 
 const SCENARIOS = [
@@ -58,7 +57,7 @@ export default function ScenarioPanel() {
     setLoading(true);
     setActiveScenario(scenario.id);
     try {
-      await fetch(`${API}${scenario.endpoint}`, { method: 'POST' });
+      await fetch(`${API_BASE}${scenario.endpoint}`, { method: 'POST' });
       setTimeout(() => setActiveScenario(null), 3000);
     } catch (e) {
       console.error('Scenario failed:', e);

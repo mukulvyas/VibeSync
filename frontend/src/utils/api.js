@@ -2,7 +2,7 @@
  * VibeSync API helpers — fetch wrappers for all backend endpoints.
  */
 
-const API_BASE = 'http://localhost:8000';
+import { API_BASE } from './config.js';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {

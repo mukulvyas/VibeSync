@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-
-const WS_URL = 'ws://localhost:8000/ws/venue';
+import { getVenueWebSocketUrl } from '../utils/config.js';
 
 /**
  * Custom hook for real-time venue data via WebSocket.
@@ -19,7 +18,7 @@ export function useVenueData() {
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(getVenueWebSocketUrl());
     wsRef.current = ws;
 
     ws.onopen = () => {
