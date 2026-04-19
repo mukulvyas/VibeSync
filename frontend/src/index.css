@@ -410,7 +410,7 @@ time,
 }
 
 .mobile-status-bar {
-  height: 52px;
+  min-height: 52px;
   position: fixed;
   top: 0;
   left: 0;
@@ -419,6 +419,7 @@ time,
   align-items: center;
   background: #060B14;
   z-index: 100;
+  padding: 0.5rem 0;
 }
 
 .mobile-status-bar-inner {
@@ -668,14 +669,13 @@ time,
 }
 
 .ops-command-header {
-  height: 64px;
   min-height: 64px;
-  max-height: 64px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1.5rem;
   gap: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(10, 14, 26, 0.95);

@@ -297,7 +297,7 @@ export default function VibeMap({
             fill={showHeatmap ? getHeatColor(sectionStats.WEST?.capacity ?? 0) : "rgba(59,130,246,0.06)"}
             style={{ transition: "fill 1s ease" }}
           />
-          <Label x={252} y={500} text={STAND_META.WEST.label} rotate={-90} />
+          <Label x={310} y={500} text={STAND_META.WEST.label} rotate={-90} />
         </g>
         <g
           className="cursor-pointer transition-all duration-300"
@@ -315,7 +315,7 @@ export default function VibeMap({
             fill={showHeatmap ? getHeatColor(sectionStats.EAST?.capacity ?? 0) : "rgba(59,130,246,0.06)"}
             style={{ transition: "fill 1s ease" }}
           />
-          <Label x={748} y={500} text={STAND_META.EAST.label} rotate={90} />
+          <Label x={690} y={500} text={STAND_META.EAST.label} rotate={90} />
         </g>
 
         {/* Heatmap blobs by stand */}
@@ -383,21 +383,21 @@ export default function VibeMap({
 
       {/* Map Legend (Hidden in attendeeMode as it is handled by the Shell) */}
       {!attendeeMode && (
-        <div className={`absolute bottom-6 right-6 p-6 rounded-[24px] space-y-4 min-w-[220px] shadow-2xl border border-white/5 glass-tactical`}>
-          <h4 className={`text-[10px] font-black tracking-widest uppercase mb-1 text-cyan-tactical`}>
+        <div className={`absolute top-4 right-4 p-3 rounded-[16px] space-y-2 min-w-[140px] shadow-2xl border border-white/5 glass-tactical scale-90 origin-top-right z-50`}>
+          <h4 className={`text-[8px] font-black tracking-widest uppercase mb-1 text-cyan-tactical`}>
             SYSTEM_LEGEND
           </h4>
-          <div className="flex items-center gap-4">
-            <div className="w-3 h-3 rounded-full bg-cyan-tactical" />
-            <span className="text-white/80 text-[11px] font-bold">Asset Nominal</span>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-cyan-tactical" />
+            <span className="text-white/80 text-[9px] font-bold">Asset Nominal</span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
-            <span className="text-white/80 text-[11px] font-bold">Flow Congestion</span>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+            <span className="text-white/80 text-[9px] font-bold">Flow Congestion</span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-            <span className="text-white/80 text-[11px] font-bold">Critical Flow</span>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+            <span className="text-white/80 text-[9px] font-bold">Critical Flow</span>
           </div>
         </div>
       )}
@@ -407,7 +407,7 @@ export default function VibeMap({
         <div
           className="absolute pointer-events-none"
           style={{
-            left: tooltip.x + 12,
+            left: tooltip.stand === "EAST" ? tooltip.x - 140 : tooltip.x + 12,
             top: tooltip.y + 12,
             position: "absolute",
             background: "rgba(6,11,20,0.95)",

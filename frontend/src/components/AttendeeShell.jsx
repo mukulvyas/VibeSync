@@ -32,7 +32,7 @@ export default function AttendeeShell({
         <div className="attendee-shell-inner mobile-status-bar-inner">
           <div className="min-w-0 flex-1 pr-2">
             <span className="text-[8px] text-text-secondary uppercase tracking-[0.2em] font-black opacity-60">Your Location</span>
-            <span className="block text-[10px] text-white font-bold tracking-tight truncate">SEC-SOUTH · Row 12 · Seat 43</span>
+            <span className="block text-[10px] text-white font-bold tracking-tight whitespace-normal break-words">SEC-SOUTH · Row 12 · Seat 43</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {renderAdminToggle(true)}
