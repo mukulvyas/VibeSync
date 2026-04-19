@@ -1,13 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 /**
  * AIInsightDrawer — A floating glassmorphism panel for AI recommendations.
  * Optimized for the centerpiece hackathon demo.
  */
 export default function AIInsightDrawer({ isOpen, onClose }) {
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isOpen) {
+        onClose();
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isOpen, onClose]);
+
   return (
     <div
-      className={`absolute bottom-0 left-0 right-0 z-[600] flex justify-center px-0 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${
+      className={`fixed bottom-0 left-0 right-0 z-[10002] flex justify-center px-0 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${
         isOpen ? 'translate-y-0' : 'translate-y-full'
       }`}
     >

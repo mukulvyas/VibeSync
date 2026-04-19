@@ -20,6 +20,7 @@ from venue import VenueSimulator
 from agents.flow_agent import FlowAgent
 from agents.sync_agent import SyncAgent
 from agents.guardian_agent import GuardianAgent
+from agents.gemini_agent import get_gemini_ops_insight
 from line_buddy import LineBuddy
 
 # ── Global State ───────────────────────────────────────
@@ -54,7 +55,7 @@ def add_agent_log(agent: str, message: str, level: str = "info"):
         agent_logs.pop()
 
 
-def generate_agent_thoughts():
+async def generate_agent_thoughts():
     """Generate agent 'thoughts' based on current venue state."""
     # FlowAgent analysis
     congested = []
@@ -114,6 +115,12 @@ def generate_agent_thoughts():
         if random.random() < 0.2:
             add_agent_log("GUARDIAN", ">> SECTORS CLEAR. Passive biometric scanning engaged.", "info")
 
+    # Optional Gemini intel (requires GEMINI_API_KEY and google-generativeai)
+    if venue.tick_count > 0 and venue.tick_count % 15 == 0:
+        insight = await asyncio.to_thread(get_gemini_ops_insight, venue)
+        if insight:
+            add_agent_log("GEMINI_INTEL", f">> {insight}", "info")
+
 
 def _zone_name(r: int, c: int) -> str:
     """Convert grid coords to stadium zone name."""
@@ -145,7 +152,7 @@ async def simulation_loop():
         latest_incentives = sync_agent.check_gates()
 
         # Generate agent thoughts
-        generate_agent_thoughts()
+        await generate_agent_thoughts()
 
         # Broadcast to all WebSocket clients
         state = _build_venue_payload()
@@ -174,9 +181,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = os.environ.get("CORS_ORIGINS", "*").strip()
+_allow_origins = ["*"] if _cors_origins == "*" else [o.strip() for o in _cors_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allow_origins or ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

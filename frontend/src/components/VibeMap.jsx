@@ -43,6 +43,11 @@ export default function VibeMap({
   incentives = [],
   showHeatmap = true,
   lastEvent = null,
+  /**
+   * "fill": map fills parent height (object-fit: contain)
+   * "auto": map has min height
+   */
+  containerHeight = "auto",
 }) {
   const containerRef = useRef(null);
   const [hoveredStand, setHoveredStand] = useState("");
@@ -129,9 +134,10 @@ export default function VibeMap({
   }, []);
 
   const getWaitTime = (capacity) => {
-    if (capacity >= 90) return "10-14 min";
-    if (capacity >= 75) return "6-9 min";
-    if (capacity >= 55) return "3-5 min";
+    const cap = capacity || 0;
+    if (cap >= 90) return "10-14 min";
+    if (cap >= 75) return "6-9 min";
+    if (cap >= 55) return "3-5 min";
     return "1-2 min";
   };
 
@@ -151,16 +157,27 @@ export default function VibeMap({
     });
   };
 
+  const sizeClass = containerHeight === "fill"
+    ? "min-h-0 h-full w-full flex-1 flex flex-col overflow-hidden rounded-xl group aspect-auto"
+    : "min-h-[600px] flex items-center justify-center group overflow-hidden rounded-xl";
+
+  const svgClass = containerHeight === "fill"
+    ? "flex-1 min-h-0 w-full h-full max-w-none min-w-0 transition-transform duration-700 pointer-events-auto"
+    : "w-full h-full max-w-[850px] transition-transform duration-700 pointer-events-auto";
+
   return (
     <div
       ref={containerRef}
-      className="tactical-panel glass-tactical relative map-blueprint-bg min-h-[600px] flex items-center justify-center group overflow-hidden rounded-xl"
+      role="region"
+      aria-label="Stadium seating map with live crowd density by stand"
+      className={`tactical-panel glass-tactical relative map-blueprint-bg ${sizeClass}`}
     >
-      <div className="scanner-effect opacity-50" />
+      <div className={`scanner-effect opacity-50 ${containerHeight === "fill" ? "pointer-events-none absolute inset-0 rounded-xl" : ""}`} />
 
       <svg
         viewBox="0 0 1000 1000"
-        className={`w-full h-full max-w-[850px] drop-shadow-[0_0_100px_rgba(0,0,0,0.8)] transition-transform duration-700 ${isFlashing ? "stadium-flash" : ""}`}
+        preserveAspectRatio="xMidYMid meet"
+        className={`${svgClass} ${isFlashing ? "stadium-flash" : ""}`}
       >
         <defs>
           <radialGradient id="fieldGradient" cx="50%" cy="50%" r="65%">
@@ -389,24 +406,26 @@ export default function VibeMap({
         )}
       </svg>
 
-      {/* Map Legend */}
-      <div className={`absolute bottom-6 right-6 p-6 rounded-[24px] space-y-4 min-w-[220px] shadow-2xl border border-white/5 ${attendeeMode ? 'bg-[#1F2937]/95' : 'glass-tactical'}`}>
-        <h4 className={`text-[10px] font-black tracking-widest uppercase mb-1 ${attendeeMode ? 'text-[#F59E0B]' : 'text-cyan-tactical'}`}>
-          {attendeeMode ? 'Live Crowd Flow' : 'SYSTEM_LEGEND'}
-        </h4>
-        <div className="flex items-center gap-4">
-          <div className={`w-3 h-3 rounded-full ${attendeeMode ? 'bg-blue-500' : 'bg-cyan-tactical'}`} />
-          <span className="text-white/80 text-[11px] font-bold">{attendeeMode ? 'Empty Seats' : 'Asset Nominal'}</span>
+      {/* Map Legend (Hidden in attendeeMode as it is handled by the Shell) */}
+      {!attendeeMode && (
+        <div className={`absolute bottom-6 right-6 p-6 rounded-[24px] space-y-4 min-w-[220px] shadow-2xl border border-white/5 glass-tactical`}>
+          <h4 className={`text-[10px] font-black tracking-widest uppercase mb-1 text-cyan-tactical`}>
+            SYSTEM_LEGEND
+          </h4>
+          <div className="flex items-center gap-4">
+            <div className="w-3 h-3 rounded-full bg-cyan-tactical" />
+            <span className="text-white/80 text-[11px] font-bold">Asset Nominal</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
+            <span className="text-white/80 text-[11px] font-bold">Flow Congestion</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+            <span className="text-white/80 text-[11px] font-bold">Critical Flow</span>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
-          <span className="text-white/80 text-[11px] font-bold">{attendeeMode ? 'Starting to Fill' : 'Flow Congestion'}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-          <span className="text-white/80 text-[11px] font-bold">{attendeeMode ? 'At Peak Capacity' : 'Critical Flow'}</span>
-        </div>
-      </div>
+      )}
 
       {/* Tooltip Card */}
       {tooltip && (
