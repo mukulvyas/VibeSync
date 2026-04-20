@@ -6,7 +6,7 @@ import { getAgentInsight } from '../utils/api';
  * For Staff: Shows high-level tactical insights.
  * For Attendees: Shows a conversational AI Concierge.
  */
-export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false, matchState, lastEvent }) {
+export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false, matchState, lastEvent, seatInfo }) {
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -80,9 +80,16 @@ export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false,
     const { capacity, noise_db } = matchState || {};
     const north = capacity?.north || 89;
     const south = capacity?.south || 76;
-    const east = capacity?.east || 82;
-    const west = capacity?.west || 71;
+    const east  = capacity?.east  || 82;
+    const west  = capacity?.west  || 71;
 
+    // Seat-specific helpers
+    const si      = seatInfo;
+    const myStand = si?.stand.label  || "SEC-SOUTH";
+    const myRow   = si?.row          || 12;
+    const mySeat  = si?.seat         || 43;
+    const myGate  = si?.stand.gate   || "S2";
+    const myCapacity = si ? (capacity?.[si.stand.key] || 76) : south;
     // GREETINGS
     if (msg.match(/^(hi|hello|hey|hii|helo|sup|hiya|yo)$/)) {
       return `Hi! I can help you find food courts, washrooms, water stations, or the best exit from your seat. What do you need?`;
@@ -110,10 +117,10 @@ export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false,
 
     // EXIT / GATE
     if (msg.match(/exit|gate|leave|out|go home|way out/)) {
-      if (south > 85) {
-        return `Gate S2 is your nearest exit but South Stand is ${south}% full. I'd suggest waiting 10 minutes for the crowd to thin.`;
+      if (myCapacity > 85) {
+        return `Gate ${myGate} is your nearest exit but ${myStand} is ${myCapacity}% full. I'd suggest waiting 10 minutes for the crowd to thin.`;
       }
-      return `Gate S2 is your nearest exit — 2 minute walk south down the concourse. Currently clear.`;
+      return `Gate ${myGate} is your nearest exit — 2 minute walk down the concourse. Currently clear.`;
     }
 
     // CROWD / BUSY
@@ -124,7 +131,7 @@ export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false,
         'West Stand': west,
         'South Stand': south
       }).sort((a,b) => b[1]-a[1])[0];
-      return `${busiest[0]} is the busiest right now at ${busiest[1]}% capacity. Your South Stand is at ${south}% — manageable.`;
+      return `${busiest[0]} is the busiest right now at ${busiest[1]}% capacity. Your ${myStand} is at ${myCapacity}% — manageable.`;
     }
 
     // SCORE / MATCH
@@ -134,7 +141,7 @@ export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false,
 
     // SEAT / LOCATION
     if (msg.match(/seat|where am i|my seat|location/)) {
-      return `You're in SEC-SOUTH, Row 12, Seat 43. Your nearest gate is S2 and nearest washroom is Hub 08 to the south.`;
+      return `You're in ${myStand}, Row ${myRow}, Seat ${mySeat}. Your nearest gate is ${myGate} and nearest washroom is Hub 08.`;
     }
 
     // PARKING
@@ -200,7 +207,7 @@ export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false,
     // ROTATING DEFAULT for anything unrecognized
     const suggestions = [
       `I'm not sure about that, but I can help with directions to food courts, washrooms, water stations, or exits. What do you need?`,
-      `That's outside my knowledge! Ask me about facilities, crowd levels, or how to get to your gate from SEC-SOUTH.`,
+      `That's outside my knowledge! Ask me about facilities, crowd levels, or how to get to your gate from ${myStand}.`,
       `I specialize in stadium navigation! Try asking "where is the washroom" or "which exit should I use".`,
     ];
     return suggestions[Math.floor(Date.now() / 1000) % 3];
@@ -341,6 +348,7 @@ export default function AIInsightDrawer({ isOpen, onClose, attendeeMode = false,
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask about the match or amenities..."
+                aria-label="Ask the VibeSync Concierge a question"
                 className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-5 pr-12 text-white text-[11px] placeholder:text-white/20 focus:outline-none focus:border-accent-primary/50 transition-colors"
                 disabled={isLoading}
               />

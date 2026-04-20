@@ -1,6 +1,8 @@
+import json
 import os
 import random
 from google import genai
+from typing import Optional
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -84,9 +86,11 @@ CRITICAL RULES:
 
 async def get_concierge_response(
     user_message: str, 
-    venue_state: dict = None,
-    history: list = []
+    venue_state: Optional[dict] = None,
+    history: Optional[list] = None
 ) -> str:
+    if history is None:
+        history = []
     try:
         context = STADIUM_CONTEXT
         if venue_state:
@@ -225,10 +229,12 @@ No agent name prefix. Just the message."""
 
 async def get_stadium_update(
     venue_state: dict,
-    last_event: str = None,
-    history: list = [],
-    last_category: str = None
+    last_event: Optional[str] = None,
+    history: Optional[list] = None,
+    last_category: Optional[str] = None
 ) -> dict:
+    if history is None:
+        history = []
     try:
         # 1. Determine selected category
         north = venue_state.get('north', 89)
@@ -263,7 +269,6 @@ Current situation:
 - West Stand: {venue_state.get('west', 71)}% full
 - Noise level: {venue_state.get('noise_db', 86)}dB
 - Last match event: {last_event or 'routine play'}
-- Fan's seat: SEC-SOUTH, Row 12
 
 Last update was about: {last_category or 'None'}
 You MUST pick a completely different topic this time.
@@ -307,7 +312,6 @@ No extra text, no markdown, just the JSON object."""
                         text = text[4:].strip()
                     break
         
-        import json
         data = json.loads(text.strip())
         
         # Validate required fields

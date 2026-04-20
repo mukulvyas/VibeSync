@@ -5,11 +5,18 @@ import React from 'react';
  * Focused shortcuts for Washroom, Food, and Seat guidance.
  */
 
-export default function AttendeeFocus({ onAction, proximities, attendeeOnly, focused }) {
+export default function AttendeeFocus({ onAction, proximities, attendeeOnly, focused, seatInfo }) {
   const p = proximities || {};
-  const washroomWait = p.WASHROOM?.wait || "2 min";
+  const washroomWait  = p.WASHROOM?.wait  || "2 min";
   const hydrationWait = p.HYDRATION?.wait || "No wait";
-  const foodWait = p.FOOD?.wait || "5 min";
+  const foodWait      = p.FOOD?.wait      || "5 min";
+
+  // Dynamic seat labels with safe fallbacks
+  const rowLabel  = seatInfo ? `Row ${seatInfo.row}`   : "Row 12";
+  const seatLabel = seatInfo ? `Seat ${seatInfo.seat}` : "Seat 43";
+  const gateLabel = seatInfo ? seatInfo.stand.gate      : "S2";
+  const entryGate = seatInfo ? seatInfo.stand.gate      : "N1";
+  const entryStand = seatInfo ? seatInfo.stand.label    : "North";
 
   return (
     <div className="space-y-6">
@@ -30,11 +37,23 @@ export default function AttendeeFocus({ onAction, proximities, attendeeOnly, foc
           type="ROUTE"
           icon="💺" 
           title="Exit Route" 
-          sub="From Seat 43"
+          sub={`From ${seatLabel}`}
           status="Priority"
-          metrics={{ primary: 'Row 12', secondary: 'Gate S2' }}
+          metrics={{ primary: rowLabel, secondary: `Gate ${gateLabel}` }}
           onClick={() => onAction('GUIDE_SEAT')}
           actionText="Start Navigation"
+        />
+
+        <FocusCard 
+          type="ROUTE"
+          icon="🎫" 
+          title="Entry Route" 
+          sub={`To ${seatLabel}`}
+          status="Dynamic"
+          metrics={{ primary: `Gate ${entryGate}`, secondary: entryStand.replace("SEC-", "") }}
+          onClick={() => onAction('GUIDE_ENTRY')}
+          actionText="Find Seat"
+          theme="blue"
         />
 
         {!focused && (

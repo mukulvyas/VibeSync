@@ -25,6 +25,9 @@ export default function AttendeeShell({
   navGuide,
   setNavGuide,
   renderAdminToggle,
+  medicalStatus,
+  handleMedicalSOS,
+  seatInfo,
 }) {
   return (
     <div className="app-shell-centered theme-attendee">
@@ -32,7 +35,11 @@ export default function AttendeeShell({
         <div className="attendee-shell-inner mobile-status-bar-inner">
           <div className="min-w-0 flex-1 pr-2">
             <span className="text-[8px] text-text-secondary uppercase tracking-[0.2em] font-black opacity-60">Your Location</span>
-            <span className="block text-[10px] text-white font-bold tracking-tight whitespace-normal break-words">SEC-SOUTH · Row 12 · Seat 43</span>
+            <span className="block text-[10px] text-white font-bold tracking-tight whitespace-normal break-words">
+              {seatInfo
+                ? `${seatInfo.stand.label} · Row ${seatInfo.row} · Seat ${seatInfo.seat}`
+                : "SEC-SOUTH · Row 12 · Seat 43"}
+            </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {renderAdminToggle(true)}
@@ -69,7 +76,40 @@ export default function AttendeeShell({
 
               <AtmosphereMetrics noise={matchState.noise_db} aqi="Moderate" wifi="Optimal" />
 
-              <AttendeeFocus attendeeOnly proximities={proximities} onAction={handleAction} />
+              {/* MEDICAL SOS BLOCK */}
+              <div className="px-2 pb-2" aria-live="polite" aria-atomic="true">
+                {medicalStatus === "resolved" ? (
+                  <div className="p-4 rounded-[20px] bg-green-500/10 border border-green-500/20 flex items-center justify-start gap-4" role="status">
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-xl" aria-hidden="true">✅</div>
+                    <div>
+                      <p className="text-[12px] font-black text-green-400 uppercase tracking-[0.1em]">Assistance Complete</p>
+                      <p className="text-[10px] text-green-500/80 mt-0.5">Staff have concluded at your seat.</p>
+                    </div>
+                  </div>
+                ) : medicalStatus === "pending" ? (
+                  <div className="p-4 rounded-[20px] bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-start gap-4 shadow-[0_0_15px_rgba(245,158,11,0.1)]" role="status">
+                    <div className="w-10 h-10 rounded-full bg-[#F59E0B]/20 flex items-center justify-center text-xl animate-pulse" aria-hidden="true">⏳</div>
+                    <div>
+                      <p className="text-[12px] font-black text-[#F59E0B] uppercase tracking-[0.1em]">Team Dispatched</p>
+                      <p className="text-[10px] text-[#F59E0B]/80 mt-0.5">Help is on the way to your seat.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleMedicalSOS}
+                    className="w-full relative group overflow-hidden p-4 rounded-[20px] bg-[#EF4444]/10 hover:bg-[#EF4444]/20 border border-[#EF4444]/30 transition-all flex items-center justify-start gap-4 active:scale-[0.98]"
+                    aria-label="Request medical assistance at your seat"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[#EF4444]/20 flex items-center justify-center text-xl group-hover:scale-110 transition-transform" aria-hidden="true">🚨</div>
+                    <div className="text-left">
+                      <p className="text-[12px] font-black text-[#EF4444] uppercase tracking-[0.1em] leading-none">Medical Assistance</p>
+                      <p className="text-[10px] font-bold text-[#EF4444]/70 mt-1">Tap for immediate seat support</p>
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              <AttendeeFocus attendeeOnly proximities={proximities} onAction={handleAction} seatInfo={seatInfo} />
             </div>
           )}
 
@@ -132,7 +172,7 @@ export default function AttendeeShell({
           {mobileTab === "FIND" && (
             <div className="py-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <h2 className="text-2xl font-black text-white px-2">Find Amenities</h2>
-              <AttendeeFocus onAction={handleAction} proximities={proximities} focused={true} />
+              <AttendeeFocus onAction={handleAction} proximities={proximities} focused={true} seatInfo={seatInfo} />
             </div>
           )}
 
@@ -168,6 +208,7 @@ export default function AttendeeShell({
         onClose={() => setIsInsightOpen(false)} 
         attendeeMode={true}
         matchState={matchState}
+        seatInfo={seatInfo}
       />
       {navGuide && <NavigationGuideModal guide={navGuide} onClose={() => setNavGuide(null)} />}
 

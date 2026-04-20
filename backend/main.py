@@ -234,8 +234,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5174",
         "https://vibesync-228890906497.europe-west1.run.app",
-        "*"  
     ],
     allow_credentials=True,
     allow_methods=["*"],

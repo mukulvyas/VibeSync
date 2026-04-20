@@ -29,21 +29,66 @@ const BACKGROUND_MONITOR_MESSAGES = [
   },
 ];
 
-const aiNavigationSuggestion = (type, matchState, lastEvent) => {
-  const gateByStand = {
-    north: "N1",
-    south: "S2",
-    east: "E2",
-    west: "W1",
-  };
+// ── Seat randomiser ────────────────────────────────────────────────────────────
+const STANDS = [
+  { key: "north", label: "SEC-NORTH", abbr: "N", gate: "N1" },
+  { key: "south", label: "SEC-SOUTH", abbr: "S", gate: "S2" },
+  { key: "east",  label: "SEC-EAST",  abbr: "E", gate: "E2" },
+  { key: "west",  label: "SEC-WEST",  abbr: "W", gate: "W1" },
+];
+
+const randomSeatInfo = () => {
+  const stand = STANDS[Math.floor(Math.random() * STANDS.length)];
+  const row   = Math.floor(Math.random() * 25) + 1;
+  const seat  = Math.floor(Math.random() * 60) + 1;
+  // Pick a bypass gate (different from the primary gate)
+  const altStand = STANDS.find(s => s.key !== stand.key && s.key !== "south") || STANDS[2];
+  return { stand, row, seat, altGate: altStand.gate, altStandLabel: altStand.label };
+};
+
+// ── AI Navigation Suggestion ───────────────────────────────────────────────────
+const aiNavigationSuggestion = (type, matchState, lastEvent, seatInfo) => {
+  const si = seatInfo;
+  const gateByStand = { north: "N1", south: "S2", east: "E2", west: "W1" };
   const standCrowd = Object.entries(matchState.capacity).map(([stand, value]) => ({
     stand,
     value,
     gate: gateByStand[stand],
   }));
-  const bestGate = [...standCrowd].sort((a, b) => a.value - b.value)[0];
+  const bestGate    = [...standCrowd].sort((a, b) => a.value - b.value)[0];
   const busiestGate = [...standCrowd].sort((a, b) => b.value - a.value)[0];
-  const highEnergy = lastEvent === "SIX" || lastEvent === "WICKET" || matchState.noise_db >= 95;
+  const highEnergy  = lastEvent === "SIX" || lastEvent === "WICKET" || matchState.noise_db >= 95;
+  const primaryCap  = matchState.capacity[si.stand.key];
+
+  if (type === "GUIDE_ENTRY") {
+    const isCongested = primaryCap > 85;
+    if (isCongested) {
+      return {
+        destination: `Bypass Route via Gate ${si.altGate}`,
+        eta: "6-8 min",
+        reason: `AI detected heavy congestion (${primaryCap}%) at primary Gate ${si.stand.gate}. Rerouting via Gate ${si.altGate} and inner concourse avoids a 12-min delay.`,
+        steps: [
+          `Enter through Gate ${si.altGate} (${si.altStandLabel}).`,
+          `Skip the main stairs; use the left corridor labeled "${si.stand.abbr} Access".`,
+          `Proceed 50m past the food court.`,
+          `Take the ramp up to ${si.stand.label} Level 1.`,
+          `Your seat (Row ${si.row}, Seat ${si.seat}) is in the third aisle on your right.`,
+        ],
+      };
+    } else {
+      return {
+        destination: `Entry via Gate ${si.stand.gate}`,
+        eta: "3-5 min",
+        reason: `Gate ${si.stand.gate} is operating nominally at ${primaryCap}% capacity. Walk-in is direct.`,
+        steps: [
+          `Enter through Gate ${si.stand.gate}.`,
+          `Take the main staircase up to Level 1.`,
+          `Turn right towards Section ${si.stand.abbr}.`,
+          `Your seat (Row ${si.row}, Seat ${si.seat}) is the second aisle on your left.`,
+        ],
+      };
+    }
+  }
 
   if (type === "GUIDE_SEAT") {
     return {
@@ -51,7 +96,7 @@ const aiNavigationSuggestion = (type, matchState, lastEvent) => {
       eta: highEnergy ? "4-6 min" : "3-4 min",
       reason: `AI selected Gate ${bestGate.gate} because it is currently the lowest load (${bestGate.value}%), avoiding ${busiestGate.gate} at ${busiestGate.value}%.`,
       steps: [
-        "From Seat 43, move straight to the main aisle at Row 12.",
+        `From Seat ${si.seat}, move straight to the main aisle at Row ${si.row}.`,
         `Follow EXIT signage toward ${bestGate.stand.toUpperCase()} concourse.`,
         "Stay on the outer lane and avoid the center crowd cluster.",
         `At the split checkpoint, keep ${bestGate.stand === "east" || bestGate.stand === "south" ? "right" : "left"} for Gate ${bestGate.gate}.`,
@@ -94,7 +139,7 @@ const aiNavigationSuggestion = (type, matchState, lastEvent) => {
     eta: highEnergy ? "3-5 min" : "2-4 min",
     reason: `AI recommended W2 due to current demand balancing and event intensity (${lastEvent || "LIVE_PLAY"}).`,
     steps: [
-      "Walk straight to the concourse connector from Row 12.",
+      `Walk straight to the concourse connector from Row ${si.row}.`,
       "Turn left at the WATER / REFILL signboard.",
       "Pass the merch cart and stay in the express lane.",
       "Hydration Station W2 is next to pillar W2.",
@@ -216,6 +261,9 @@ export default function App() {
   const [path, setPath] = useState(null);
   const [sosAlerts, setSosAlerts] = useState([]);
 
+  // Randomised attendee seat (stable for session)
+  const [seatInfo] = useState(() => randomSeatInfo());
+
   // Navigation & UI State
   const [mobileTab, setMobileTab] = useState("HOME");
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -254,6 +302,9 @@ export default function App() {
       status: "critical",
     },
   ]);
+
+  // Medical Flow State Tracker
+  const [medicalStatus, setMedicalStatus] = useState(null);
 
   // User position
   const [userPos, setUserPos] = useState({ row: 8, col: 4 });
@@ -421,14 +472,36 @@ export default function App() {
 
   const handleResolveAlert = (alert) => {
     setActiveAlerts((prev) => prev.filter((item) => item.id !== alert.id));
-    showOpsToast("✓ Gate North alert resolved", "success");
+    
+    if (alert.id.startsWith("medical")) {
+      setMedicalStatus("resolved");
+      showOpsToast("✓ Medical assistance complete", "success");
+      prependAgentLog(
+        createLogEntry("Guardian", "#10B981", `Medical alert at ${alert.detail} resolved safely.`)
+      );
+      return;
+    }
+    
+    showOpsToast(`✓ Alert resolved`, "success");
     prependAgentLog(
       createLogEntry(
         "Sync Agent",
         "#3B82F6",
-        "Gate North congestion resolved. Flow returned to nominal.",
+        `Congestion resolved. Flow returned to nominal.`,
       ),
     );
+  };
+
+  const handleMedicalSOS = () => {
+    if (medicalStatus === "pending") return;
+    setMedicalStatus("pending");
+    setActiveAlerts((prev) => [{
+      id: `medical-${Date.now()}`,
+      title: "Medical Emergency · Critical",
+      detail: `${seatInfo.stand.label} · Row ${seatInfo.row} · Seat ${seatInfo.seat}`,
+      time: new Date().toLocaleTimeString("en-US", { hour12: false, hour: '2-digit', minute: '2-digit' }),
+      status: "critical"
+    }, ...prev]);
   };
 
   const handleRunScenario = (scenarioType, label) => {
@@ -472,8 +545,8 @@ export default function App() {
   };
 
   const handleAction = async (type) => {
-    if (!staffMode && (type === "GUIDE_SEAT" || type.startsWith("POI_"))) {
-      const nav = aiNavigationSuggestion(type, matchState, lastEvent);
+    if (!staffMode && (type === "GUIDE_SEAT" || type === "GUIDE_ENTRY" || type.startsWith("POI_"))) {
+      const nav = aiNavigationSuggestion(type, matchState, lastEvent, seatInfo);
       setNavGuide({
         id: `${Date.now()}`,
         destination: nav.destination,
@@ -563,6 +636,9 @@ export default function App() {
       navGuide={navGuide}
       setNavGuide={setNavGuide}
       renderAdminToggle={renderAdminToggle}
+      medicalStatus={medicalStatus}
+      handleMedicalSOS={handleMedicalSOS}
+      seatInfo={seatInfo}
     />
   );
 }
