@@ -20,14 +20,14 @@ At a packed cricket stadium, fans waste 15+ minutes finding exits, washrooms, an
 | 🟢 Attendee App | `http://localhost:5173/` |
 | 🔵 Ops Command | `http://localhost:5173/ops` |
 
-### 90-Second Judge Demo
+### Demo
 
 1. Open **User view** → tap the 🎫 **Entry Route** card → see AI-generated directions from the entry gate to your randomised seat, with a bypass route if the primary gate is congested
 2. Tap 🚨 **Medical Assistance** → ops dashboard (switch to `/ops`) shows a live critical alert — resolve it → attendee view updates to "Assistance Complete" in real time
 3. Switch to **Ops view** → click **⚡ Run Scenario** → select **Full House**
 4. Watch the heatmap surge red, capacity alerts fire, and agents log responses
 5. Click **Resolve** on a critical alert → agent log closes the loop automatically
-6. Open the ✦ **AI Concierge** (floating button) → ask "where is the washroom?" or "which gate should I use?" → Gemini answers with venue-aware context
+6. Open the ✦ **AI Concierge** (floating button) → ask "where is the washroom?" or "which gate should I use?" →  AI answers with venue-aware context
 
 ---
 
@@ -41,8 +41,8 @@ At a packed cricket stadium, fans waste 15+ minutes finding exits, washrooms, an
 | Exit Route with least-busy gate AI routing | One-click scenario controls |
 | Medical SOS → Ops alert → resolved status | Critical alert workflow with resolution |
 | Live atmosphere (noise dB, AQI, WiFi Mbps) | AI Operational Insight with confidence score |
-| AI Concierge chat (Gemini-powered) | Scenario-driven stress testing |
-| Stadium Updates feed (Gemini-powered) | WebSocket live venue state stream |
+| AI Concierge chat | Scenario-driven stress testing |
+| Stadium Updates feed | WebSocket live venue state stream |
 
 ---
 
