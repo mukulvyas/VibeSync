@@ -179,6 +179,8 @@ export default function VibeMap({
         preserveAspectRatio="xMidYMid meet"
         className={`${svgClass} ${isFlashing ? "stadium-flash" : ""}`}
       >
+        <title>Stadium Heatmap View</title>
+        <desc>Dynamic map showing crowd density across North, South, East, and West stands at Wankhede Stadium.</desc>
         <defs>
           <radialGradient id="fieldGradient" cx="50%" cy="50%" r="65%">
             <stop offset="0%" stopColor="#2b6a43" />
@@ -246,12 +248,21 @@ export default function VibeMap({
 
         {/* Stand interactive hit regions */}
         <g
-          className="cursor-pointer transition-all duration-300"
+          className="cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-tactical"
+          role="button"
+          tabIndex={0}
+          aria-label={`North Stand: ${sectionStats.NORTH?.capacity ?? 0}% capacity`}
           onMouseEnter={(e) => showStandTooltip("NORTH", e)}
           onMouseMove={(e) => showStandTooltip("NORTH", e)}
           onMouseLeave={() => {
             setHoveredStand("");
             setTooltip(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onCellClick?.("NORTH");
+            }
           }}
           onClick={() => onCellClick?.("NORTH")}
           style={{ opacity: hoveredStand && hoveredStand !== "NORTH" ? 0.85 : 1 }}
@@ -264,12 +275,21 @@ export default function VibeMap({
           <Label x={500} y={248} text={STAND_META.NORTH.label} />
         </g>
         <g
-          className="cursor-pointer transition-all duration-300"
+          className="cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-tactical"
+          role="button"
+          tabIndex={0}
+          aria-label={`South Stand: ${sectionStats.SOUTH?.capacity ?? 0}% capacity`}
           onMouseEnter={(e) => showStandTooltip("SOUTH", e)}
           onMouseMove={(e) => showStandTooltip("SOUTH", e)}
           onMouseLeave={() => {
             setHoveredStand("");
             setTooltip(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onCellClick?.("SOUTH");
+            }
           }}
           onClick={() => onCellClick?.("SOUTH")}
           style={{ opacity: hoveredStand && hoveredStand !== "SOUTH" ? 0.85 : 1 }}
@@ -282,12 +302,21 @@ export default function VibeMap({
           <Label x={500} y={754} text={STAND_META.SOUTH.label} />
         </g>
         <g
-          className="cursor-pointer transition-all duration-300"
+          className="cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-tactical"
+          role="button"
+          tabIndex={0}
+          aria-label={`West Stand: ${sectionStats.WEST?.capacity ?? 0}% capacity`}
           onMouseEnter={(e) => showStandTooltip("WEST", e)}
           onMouseMove={(e) => showStandTooltip("WEST", e)}
           onMouseLeave={() => {
             setHoveredStand("");
             setTooltip(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onCellClick?.("WEST");
+            }
           }}
           onClick={() => onCellClick?.("WEST")}
           style={{ opacity: hoveredStand && hoveredStand !== "WEST" ? 0.85 : 1 }}
@@ -300,12 +329,21 @@ export default function VibeMap({
           <Label x={310} y={500} text={STAND_META.WEST.label} rotate={-90} />
         </g>
         <g
-          className="cursor-pointer transition-all duration-300"
+          className="cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-tactical"
+          role="button"
+          tabIndex={0}
+          aria-label={`East Stand: ${sectionStats.EAST?.capacity ?? 0}% capacity`}
           onMouseEnter={(e) => showStandTooltip("EAST", e)}
           onMouseMove={(e) => showStandTooltip("EAST", e)}
           onMouseLeave={() => {
             setHoveredStand("");
             setTooltip(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onCellClick?.("EAST");
+            }
           }}
           onClick={() => onCellClick?.("EAST")}
           style={{ opacity: hoveredStand && hoveredStand !== "EAST" ? 0.85 : 1 }}

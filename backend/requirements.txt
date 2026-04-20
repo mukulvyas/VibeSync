@@ -6,3 +6,6 @@ google-genai>=1.0.0
 python-dotenv
 pytest
 httpx
+google-cloud-logging
+google-cloud-secret-manager
+firebase-admin

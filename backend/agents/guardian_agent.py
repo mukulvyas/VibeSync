@@ -8,6 +8,7 @@ high-priority Staff Alert payloads.
 from datetime import datetime, timezone
 from venue import VenueSimulator
 from models import SOSResponse, StaffAlert
+from firebase_service import firebase_store
 from agents.flow_agent import FlowAgent
 
 
@@ -61,6 +62,9 @@ class GuardianAgent:
             path=path,
         )
         self.alerts.append(alert)
+        
+        # Persist to Firebase
+        firebase_store.save_alert(alert.model_dump())
 
         return SOSResponse(
             seat_id=seat_id.upper(),
@@ -81,5 +85,7 @@ class GuardianAgent:
         for alert in self.alerts:
             if alert.id == alert_id:
                 alert.resolved = True
+                # Update Firebase
+                firebase_store.update_alert(alert_id, {"status": "resolved", "resolved_at": datetime.now(timezone.utc).isoformat()})
                 return True
         return False

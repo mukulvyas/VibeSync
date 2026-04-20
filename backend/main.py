@@ -19,6 +19,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+# ── Google Cloud Logging ───────────────────────────────
+try:
+    import google.cloud.logging
+    logging_client = google.cloud.logging.Client()
+    logging_client.setup_logging()
+    import logging
+    logger = logging.getLogger("vibesync")
+    logger.info("VibeSync Cloud Logging initialized.")
+except Exception:
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("vibesync")
+    logger.info("Local logging initialized (Cloud Logging fallback).")
+
 from models import (
     PathRequest, PathResponse, SOSRequest, SOSResponse,
     JoinQueueRequest, JoinQueueResponse, VenueState, StaffAlert,
@@ -80,6 +94,12 @@ def add_agent_log(agent: str, message: str, level: str = "info"):
         "level": level,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
+    # Log to Google Cloud Logging
+    log_msg = f"[{agent}] {message}"
+    if level == "critical": logger.error(log_msg)
+    elif level == "warning": logger.warning(log_msg)
+    else: logger.info(log_msg)
+
     if len(agent_logs) > MAX_LOGS:
         agent_logs.pop()
 

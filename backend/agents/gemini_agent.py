@@ -3,8 +3,28 @@ import os
 import random
 from google import genai
 from typing import Optional
+import logging
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+logger = logging.getLogger("vibesync")
+
+def get_gemini_api_key():
+    """Fetch API key from env or Google Cloud Secret Manager."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key and not api_key.startswith("projects/"):
+        return api_key
+        
+    try:
+        from google.cloud import secretmanager
+        client = secretmanager.SecretManagerServiceClient()
+        # If the env var contains the secret path, use it. Otherwise use a default name.
+        secret_name = os.getenv("GEMINI_SECRET_NAME", "projects/vibesync/secrets/GEMINI_API_KEY/versions/latest")
+        response = client.access_secret_version(request={"name": secret_name})
+        return response.payload.data.decode("UTF-8")
+    except Exception as e:
+        logger.warning(f"Failed to fetch secret from Secret Manager: {e}. Falling back to env.")
+        return api_key
+
+client = genai.Client(api_key=get_gemini_api_key())
 
 FALLBACK_RESPONSES = [
     "Gate S2 is your nearest exit — clear right now!",

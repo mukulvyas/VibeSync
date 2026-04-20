@@ -31,6 +31,7 @@ export default function AttendeeShell({
 }) {
   return (
     <div className="app-shell-centered theme-attendee">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <header className="mobile-status-bar font-data">
         <div className="attendee-shell-inner mobile-status-bar-inner">
           <div className="min-w-0 flex-1 pr-2">
@@ -52,7 +53,7 @@ export default function AttendeeShell({
       </header>
 
       <div className="mobile-content-scroller no-scrollbar">
-        <div className="attendee-shell-inner">
+        <main className="attendee-shell-inner" id="main-content">
           {mobileTab === "HOME" && (
             <div className="py-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-full overflow-hidden">
               <div className="relative p-6 rounded-[24px] overflow-hidden border border-white/5 bg-gradient-to-br from-[#0E1623] to-[#162030] space-y-5">
@@ -191,11 +192,11 @@ export default function AttendeeShell({
               />
             </div>
           )}
-        </div>
+        </main>
       </div>
 
-      <nav className="bottom-tabs">
-        <div className="attendee-shell-inner bottom-tabs-inner">
+      <nav className="bottom-tabs" aria-label="Main Navigation">
+        <div className="attendee-shell-inner bottom-tabs-inner" role="tablist">
           <MobileTabItem icon="🏠" label="Home" active={mobileTab === "HOME"} onClick={() => setMobileTab("HOME")} />
           <MobileTabItem icon="🗺️" label="Map" active={mobileTab === "MAP"} onClick={() => setMobileTab("MAP")} />
           <MobileTabItem icon="🔍" label="Find" active={mobileTab === "FIND"} onClick={() => setMobileTab("FIND")} />

@@ -33,6 +33,7 @@ export default function OpsDashboard({
 
   return (
     <div className="ops-command-root font-sans selection:bg-cyan-tactical/30 text-text-primary theme-ops">
+      <a href="#main-ops-content" className="skip-link">Skip to main content</a>
       <header className="ops-command-header grid-texture">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 shrink-0 border-2 border-cyan-tactical flex items-center justify-center text-cyan-tactical font-black text-base shadow-[0_0_20px_rgba(0,212,255,0.4)]">
@@ -135,7 +136,7 @@ export default function OpsDashboard({
           </div>
         </aside>
 
-        <main className="ops-panel-center">
+        <main className="ops-panel-center" id="main-ops-content">
           <div className="ops-map-wrap">
             <div className="absolute top-2 left-2 z-[100] pointer-events-auto">
               <div className="flex items-center gap-3 bg-black/40 backdrop-blur-xl p-2 rounded-full border border-white/5 shadow-2xl">

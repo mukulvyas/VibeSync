@@ -9,15 +9,15 @@ export default function AtmosphereMetrics({ noise, aqi, wifi }) {
     <div className="space-y-6">
       <Section label="Atmosphere" />
       
-      <div className="space-y-4">
+      <div className="space-y-4" role="region" aria-label="Environmental metrics">
         {/* Animated Noise Level Equalizer */}
-        <div className="glass-tactical p-5 rounded-3xl border border-white/5 space-y-4">
+        <div className="glass-tactical p-5 rounded-3xl border border-white/5 space-y-4" aria-label={`Current noise level is ${noise} decibels`}>
           <div className="flex justify-between items-center px-1">
              <span className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em]">Noise Level</span>
              <span className="text-white font-data text-xs font-black tracking-widest">{noise} dB</span>
           </div>
           
-          <div className="flex items-end gap-2 h-16 px-2 bg-black/40 rounded-2xl justify-center overflow-hidden">
+          <div className="flex items-end gap-2 h-16 px-2 bg-black/40 rounded-2xl justify-center overflow-hidden" aria-hidden="true">
             {[18, 34, 24, 44, 30].map((h, i) => (
               <div 
                 key={i}
@@ -35,10 +35,13 @@ export default function AtmosphereMetrics({ noise, aqi, wifi }) {
 
         <div className="grid grid-cols-1 gap-3">
           {/* AQI Pill */}
-          <div className="flex justify-between items-center px-5 py-4 bg-[#F59E0B]/10 rounded-2xl border border-[#F59E0B]/30 shadow-lg">
+          <div 
+            className="flex justify-between items-center px-5 py-4 bg-[#F59E0B]/10 rounded-2xl border border-[#F59E0B]/30 shadow-lg"
+            aria-label={`Air quality is ${aqi}`}
+          >
             <span className="text-[10px] font-black text-[#F59E0B] uppercase tracking-widest">Air Quality</span>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse shadow-[0_0_8px_#F59E0B]" />
+              <div className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse shadow-[0_0_8px_#F59E0B]" aria-hidden="true" />
               <span className="text-[10px] font-black text-white tracking-tight bg-[#F59E0B]/20 border border-[#F59E0B]/40 rounded-full px-2 py-0.5">
                 {aqi}
               </span>
@@ -46,10 +49,13 @@ export default function AtmosphereMetrics({ noise, aqi, wifi }) {
           </div>
 
           {/* Guest WiFi Signal SVG */}
-          <div className="flex justify-between items-center px-5 py-4 bg-[#111827] rounded-2xl border border-white/5 shadow-lg">
+          <div 
+            className="flex justify-between items-center px-5 py-4 bg-[#111827] rounded-2xl border border-white/5 shadow-lg"
+            aria-label={`WiFi status is ${wifi}`}
+          >
             <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">WiFi</span>
             <div className="flex items-center gap-1.5 h-3">
-              <svg width="24" height="18" viewBox="0 0 24 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="24" height="18" viewBox="0 0 24 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <rect x="0" y="14" width="4" height="4" rx="1" fill="#10B981"/>
                 <rect x="6" y="10" width="4" height="8" rx="1" fill="#10B981"/>
                 <rect x="12" y="5" width="4" height="13" rx="1" fill="#10B981"/>
